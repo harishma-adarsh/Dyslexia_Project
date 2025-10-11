@@ -1,0 +1,336 @@
+{% extends 'user_interface/base.html' %}
+
+{% block title %}{{ exercise.name }} - Dyslexia Helper{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <h2><span class="emoji">🎮</span> {{ exercise.name }}</h2>
+                <p class="lead">{{ exercise.description }}</p>
+                <div class="mb-3">
+                    <span class="badge bg-{% if exercise.difficulty_level == 'beginner' %}success{% elif exercise.difficulty_level == 'intermediate' %}warning{% else %}danger{% endif %} me-2">
+                        {{ exercise.get_difficulty_level_display }}
+                    </span>
+                    <span class="badge bg-info">
+                        <i class="fas fa-clock"></i> {{ exercise.expected_duration }} minutes
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-play"></i> Exercise Instructions</h4>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle"></i> Instructions</h6>
+                    <p>{{ exercise.instructions }}</p>
+                </div>
+                
+                {% if exercise.exercise_type == 'reading' %}
+                    <div class="exercise-content">
+                        <h5><i class="fas fa-book"></i> Reading Exercise</h5>
+                        {% if exercise.content.type == 'letter_matching' %}
+                            <div class="letter-matching-game">
+                                <h6>Match the letters with their sounds!</h6>
+                                <div class="row">
+                                    {% for letter in exercise.content.letters %}
+                                    <div class="col-md-2 mb-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h3 class="display-4">{{ letter }}</h3>
+                                                <button class="btn btn-outline-primary btn-sm" onclick="playSound('{{ letter }}')">
+                                                    <i class="fas fa-volume-up"></i> Sound
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% elif exercise.content.type == 'word_building' %}
+                            <div class="word-building-game">
+                                <h6>Build the word: <span id="target-word" class="fw-bold">CAT</span></h6>
+                                <div class="letter-bank mb-3">
+                                    <h6>Available Letters:</h6>
+                                    {% for letter in exercise.content.letters %}
+                                    <button class="btn btn-outline-secondary me-2 mb-2 letter-btn" 
+                                            onclick="addLetter('{{ letter }}')">{{ letter }}</button>
+                                    {% endfor %}
+                                </div>
+                                <div class="word-display">
+                                    <h4 id="built-word" class="text-primary">_ _ _</h4>
+                                </div>
+                            </div>
+                        {% elif exercise.content.type == 'comprehension' %}
+                            <div class="comprehension-exercise">
+                                <h6>Read the story and answer questions:</h6>
+                                <div class="story-content mb-4">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5>{{ exercise.content.stories.0.title }}</h5>
+                                            <p>{{ exercise.content.stories.0.text }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="questions">
+                                    {% for question in exercise.content.stories.0.questions %}
+                                    <div class="mb-3">
+                                        <label class="form-label">{{ forloop.counter }}. {{ question }}</label>
+                                        <input type="text" class="form-control" name="answer_{{ forloop.counter }}">
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                
+                {% elif exercise.exercise_type == 'writing' %}
+                    <div class="exercise-content">
+                        <h5><i class="fas fa-pencil-alt"></i> Writing Exercise</h5>
+                        {% if exercise.content.type == 'letter_tracing' %}
+                            <div class="letter-tracing-game">
+                                <h6>Trace these letters carefully:</h6>
+                                <div class="row">
+                                    {% for letter in exercise.content.letters %}
+                                    <div class="col-md-2 mb-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <h2 class="text-muted">{{ letter }}</h2>
+                                                <canvas id="canvas-{{ forloop.counter0 }}" width="100" height="100" 
+                                                        style="border: 1px solid #ccc; cursor: crosshair;"></canvas>
+                                                <button class="btn btn-sm btn-outline-secondary mt-2" 
+                                                        onclick="clearCanvas('canvas-{{ forloop.counter0 }}')">Clear</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% elif exercise.content.type == 'word_copying' %}
+                            <div class="word-copying-game">
+                                <h6>Copy these words:</h6>
+                                <div class="row">
+                                    {% for word in exercise.content.words %}
+                                    <div class="col-md-3 mb-3">
+                                        <div class="card">
+                                            <div class="card-body text-center">
+                                                <h4 class="text-primary">{{ word }}</h4>
+                                                <textarea class="form-control mt-2" rows="2" 
+                                                          placeholder="Write the word here..."></textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% elif exercise.content.type == 'creative_writing' %}
+                            <div class="creative-writing-game">
+                                <h6>Write a story using these words:</h6>
+                                <div class="prompt-words mb-3">
+                                    {% for word in exercise.content.prompt_words %}
+                                    <span class="badge bg-primary me-2">{{ word }}</span>
+                                    {% endfor %}
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Your Story:</label>
+                                    <textarea class="form-control" rows="8" 
+                                              placeholder="Write your creative story here..."></textarea>
+                                </div>
+                                <small class="text-muted">Minimum {{ exercise.content.min_words }} words</small>
+                            </div>
+                        {% endif %}
+                    </div>
+                
+                {% elif exercise.exercise_type == 'phoneme' %}
+                    <div class="exercise-content">
+                        <h5><i class="fas fa-microphone"></i> Phoneme Exercise</h5>
+                        {% if exercise.content.type == 'sound_matching' %}
+                            <div class="sound-matching-game">
+                                <h6>Listen and match the sounds!</h6>
+                                <div class="row">
+                                    {% for sound in exercise.content.sounds %}
+                                    <div class="col-md-2 mb-3">
+                                        <div class="card text-center">
+                                            <div class="card-body">
+                                                <button class="btn btn-primary btn-lg mb-2" 
+                                                        onclick="playPhoneme('{{ sound }}')">
+                                                    <i class="fas fa-volume-up"></i>
+                                                </button>
+                                                <p class="mb-0">{{ sound }}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% elif exercise.content.type == 'rhyming' %}
+                            <div class="rhyming-game">
+                                <h6>Find words that rhyme with: <span class="fw-bold text-primary">{{ exercise.content.base_words.0 }}</span></h6>
+                                <div class="options">
+                                    {% for option in exercise.content.options %}
+                                    <button class="btn btn-outline-secondary me-2 mb-2 rhyme-option" 
+                                            onclick="selectRhyme('{{ option }}')">{{ option }}</button>
+                                    {% endfor %}
+                                </div>
+                                <div class="selected-rhymes mt-3">
+                                    <h6>Selected rhymes:</h6>
+                                    <div id="rhyme-selection"></div>
+                                </div>
+                            </div>
+                        {% elif exercise.content.type == 'blending' %}
+                            <div class="blending-game">
+                                <h6>Blend these sounds to make a word:</h6>
+                                <div class="sound-sequence mb-3">
+                                    {% for sound in exercise.content.sound_sequences.0 %}
+                                    <button class="btn btn-info me-2" onclick="playPhoneme('{{ sound }}')">
+                                        {{ sound }}
+                                    </button>
+                                    {% endfor %}
+                                </div>
+                                <div class="answer-input">
+                                    <label class="form-label">What word do you hear?</label>
+                                    <input type="text" class="form-control" id="blend-answer" 
+                                           placeholder="Type the word here...">
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center">
+                <form method="post" id="exercise-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="session_data" id="session-data" value="{}">
+                    <input type="hidden" name="score" id="exercise-score" value="0">
+                    <input type="hidden" name="duration" id="exercise-duration" value="0">
+                    
+                    <button type="submit" class="btn btn-success btn-lg" id="complete-btn" disabled>
+                        <i class="fas fa-check"></i> Complete Exercise
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let startTime = Date.now();
+let sessionData = {};
+
+// Timer
+setInterval(() => {
+    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+    document.getElementById('exercise-duration').value = elapsed;
+}, 1000);
+
+// Sound functions (placeholder)
+function playSound(letter) {
+    // In a real implementation, this would play the sound
+    console.log('Playing sound for:', letter);
+    sessionData[letter] = (sessionData[letter] || 0) + 1;
+}
+
+function playPhoneme(sound) {
+    console.log('Playing phoneme:', sound);
+    sessionData[sound] = (sessionData[sound] || 0) + 1;
+}
+
+// Letter building game
+let currentWord = '';
+function addLetter(letter) {
+    currentWord += letter;
+    document.getElementById('built-word').textContent = currentWord;
+    sessionData.lettersUsed = (sessionData.lettersUsed || 0) + 1;
+    checkCompletion();
+}
+
+// Rhyming game
+let selectedRhymes = [];
+function selectRhyme(word) {
+    if (!selectedRhymes.includes(word)) {
+        selectedRhymes.push(word);
+        const selectionDiv = document.getElementById('rhyme-selection');
+        selectionDiv.innerHTML += `<span class="badge bg-success me-2">${word}</span>`;
+        sessionData.rhymesSelected = selectedRhymes.length;
+        checkCompletion();
+    }
+}
+
+// Blending game
+document.getElementById('blend-answer').addEventListener('input', function() {
+    const answer = this.value.toLowerCase();
+    if (answer === 'cat') { // Correct answer for the example
+        sessionData.correctBlend = true;
+        checkCompletion();
+    }
+});
+
+// Check if exercise is complete
+function checkCompletion() {
+    const completeBtn = document.getElementById('complete-btn');
+    const scoreInput = document.getElementById('exercise-score');
+    
+    // Simple completion logic - in real implementation, this would be more sophisticated
+    let score = 0;
+    if (sessionData.lettersUsed > 0) score += 30;
+    if (sessionData.rhymesSelected > 0) score += 30;
+    if (sessionData.correctBlend) score += 40;
+    
+    scoreInput.value = Math.min(score, 100);
+    
+    if (score > 0) {
+        completeBtn.disabled = false;
+        completeBtn.innerHTML = `<i class="fas fa-check"></i> Complete Exercise (Score: ${score}%)`;
+    }
+}
+
+// Update session data before submit
+document.getElementById('exercise-form').addEventListener('submit', function() {
+    document.getElementById('session-data').value = JSON.stringify(sessionData);
+});
+
+// Canvas drawing for letter tracing
+document.querySelectorAll('canvas').forEach(canvas => {
+    const ctx = canvas.getContext('2d');
+    let isDrawing = false;
+    
+    canvas.addEventListener('mousedown', () => isDrawing = true);
+    canvas.addEventListener('mouseup', () => isDrawing = false);
+    canvas.addEventListener('mousemove', (e) => {
+        if (isDrawing) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            ctx.fillStyle = '#000';
+            ctx.beginPath();
+            ctx.arc(x, y, 2, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+    });
+});
+
+function clearCanvas(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+</script>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends 'user_interface/base.html' %}
+
+{% block title %}Welcome - Dyslexia Helper{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <h1 class="display-4 mb-4">
+                    <span class="emoji">🌟</span> Welcome to Dyslexia Helper! <span class="emoji">🌟</span>
+                </h1>
+                <p class="lead">Your friendly learning companion for reading and writing practice!</p>
+                <p class="text-muted">Get started by creating an account or logging in to access your personalized learning journey.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="feature-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h3>Create Account</h3>
+                <p>Join our learning community and start your personalized journey!</p>
+                <a href="{% url 'register' %}" class="btn btn-primary">
+                    <i class="fas fa-user-plus"></i> Sign Up Now
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="feature-icon">
+                    <i class="fas fa-sign-in-alt"></i>
+                </div>
+                <h3>Already Have Account?</h3>
+                <p>Welcome back! Continue your learning journey.</p>
+                <a href="{% url 'admin:login' %}" class="btn btn-success">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4><span class="emoji">✨</span> What You Can Do</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="feature-icon">
+                            <i class="fas fa-upload"></i>
+                        </div>
+                        <h6>Upload Samples</h6>
+                        <p>Share your handwriting and speech samples for analysis</p>
+                    </div>
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="feature-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <h6>Get Analysis</h6>
+                        <p>Receive AI-powered insights about your learning progress</p>
+                    </div>
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="feature-icon">
+                            <i class="fas fa-gamepad"></i>
+                        </div>
+                        <h6>Practice Exercises</h6>
+                        <p>Engage with fun, interactive learning activities</p>
+                    </div>
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <h6>Track Progress</h6>
+                        <p>Monitor your improvement over time</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

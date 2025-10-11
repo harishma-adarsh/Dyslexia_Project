@@ -1,0 +1,163 @@
+{% extends 'user_interface/base.html' %}
+
+{% block title %}Analyze Samples - Dyslexia Helper{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <h2><span class="emoji">🔍</span> Analyze Your Samples</h2>
+                <p class="lead">Run AI analysis on your uploaded handwriting and speech samples!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-pencil-alt"></i> Handwriting Samples</h4>
+            </div>
+            <div class="card-body">
+                {% if handwriting_samples %}
+                    {% for sample in handwriting_samples %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    {% if sample.image_file %}
+                                        <img src="{{ sample.image_file.url }}" class="img-fluid rounded" 
+                                             style="max-height: 100px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="bg-light rounded d-flex align-items-center justify-content-center" 
+                                             style="height: 100px;">
+                                            <i class="fas fa-image fa-2x text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-8">
+                                    <h6>{{ sample.text_content|truncatechars:50 }}</h6>
+                                    <p class="text-muted mb-2">
+                                        <i class="fas fa-clock"></i> {{ sample.timestamp|date:"M d, Y H:i" }}
+                                    </p>
+                                    <form method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="sample_id" value="{{ sample.id }}">
+                                        <input type="hidden" name="sample_type" value="handwriting">
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            <i class="fas fa-brain"></i> Analyze Handwriting
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-pencil-alt fa-3x text-muted mb-3"></i>
+                        <h5>No handwriting samples yet</h5>
+                        <p class="text-muted">Upload some handwriting samples to get started!</p>
+                        <a href="{% url 'upload_data' %}" class="btn btn-primary">
+                            <i class="fas fa-upload"></i> Upload Samples
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-microphone"></i> Speech Samples</h4>
+            </div>
+            <div class="card-body">
+                {% if speech_samples %}
+                    {% for sample in speech_samples %}
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="bg-primary rounded d-flex align-items-center justify-content-center" 
+                                         style="height: 100px;">
+                                        <i class="fas fa-microphone fa-2x text-white"></i>
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <h6>{{ sample.text_content|truncatechars:50 }}</h6>
+                                    <p class="text-muted mb-2">
+                                        <i class="fas fa-clock"></i> {{ sample.timestamp|date:"M d, Y H:i" }}
+                                    </p>
+                                    <form method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="sample_id" value="{{ sample.id }}">
+                                        <input type="hidden" name="sample_type" value="speech">
+                                        <button type="submit" class="btn btn-success btn-sm">
+                                            <i class="fas fa-brain"></i> Analyze Speech
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-microphone fa-3x text-muted mb-3"></i>
+                        <h5>No speech samples yet</h5>
+                        <p class="text-muted">Upload some speech recordings to get started!</p>
+                        <a href="{% url 'upload_data' %}" class="btn btn-success">
+                            <i class="fas fa-upload"></i> Upload Samples
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if handwriting_samples or speech_samples %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4><span class="emoji">🧠</span> Run Combined Analysis</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{% url 'detection_results' %}">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="handwriting_sample_id" class="form-label">Select Handwriting Sample</label>
+                            <select class="form-control" name="handwriting_sample_id" id="handwriting_sample_id">
+                                <option value="">Choose handwriting sample...</option>
+                                {% for sample in handwriting_samples %}
+                                    <option value="{{ sample.id }}">{{ sample.text_content|truncatechars:30 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="speech_sample_id" class="form-label">Select Speech Sample</label>
+                            <select class="form-control" name="speech_sample_id" id="speech_sample_id">
+                                <option value="">Choose speech sample...</option>
+                                {% for sample in speech_samples %}
+                                    <option value="{{ sample.id }}">{{ sample.text_content|truncatechars:30 }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="text-center mt-3">
+                        <button type="submit" class="btn btn-warning btn-lg">
+                            <i class="fas fa-search"></i> Run Combined Analysis
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

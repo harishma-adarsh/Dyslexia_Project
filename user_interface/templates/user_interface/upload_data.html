@@ -1,0 +1,164 @@
+{% extends 'user_interface/base.html' %}
+
+{% block title %}Upload Data - Dyslexia Helper{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <h2><span class="emoji">📤</span> Upload Your Samples</h2>
+                <p class="lead">Share your handwriting and speech so we can help you improve!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h4><i class="fas fa-pencil-alt"></i> Handwriting Sample</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="upload-area mb-3" id="handwriting-upload">
+                        <i class="fas fa-image fa-3x text-muted mb-3"></i>
+                        <h5>Drop your handwriting image here!</h5>
+                        <p class="text-muted">Or click to select a file</p>
+                        <input type="file" name="handwriting_image" accept="image/*" class="form-control" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="handwriting_text" class="form-label">
+                            <i class="fas fa-align-left"></i> What did you write?
+                        </label>
+                        <textarea class="form-control" name="handwriting_text" id="handwriting_text" 
+                                  rows="3" placeholder="Tell us what text you wrote in the image..."></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="eye_tracking_data" class="form-label">
+                            <i class="fas fa-eye"></i> Eye Tracking Data (Optional)
+                        </label>
+                        <textarea class="form-control" name="eye_tracking_data" id="eye_tracking_data" 
+                                  rows="2" placeholder='[{"x": 100, "y": 200, "timestamp": 1000}]'></textarea>
+                        <small class="form-text text-muted">JSON format with x, y coordinates and timestamps</small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-upload"></i> Upload Handwriting
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h4><i class="fas fa-microphone"></i> Speech Sample</h4>
+            </div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    
+                    <div class="upload-area mb-3" id="speech-upload">
+                        <i class="fas fa-microphone fa-3x text-muted mb-3"></i>
+                        <h5>Drop your audio file here!</h5>
+                        <p class="text-muted">Or click to select a file</p>
+                        <input type="file" name="speech_audio" accept="audio/*" class="form-control" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="speech_text" class="form-label">
+                            <i class="fas fa-align-left"></i> What did you say?
+                        </label>
+                        <textarea class="form-control" name="speech_text" id="speech_text" 
+                                  rows="3" placeholder="Tell us what text you spoke in the audio..."></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="fas fa-upload"></i> Upload Speech
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4><span class="emoji">💡</span> Upload Tips</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-pencil-alt"></i> For Handwriting:</h6>
+                        <ul class="list-unstyled">
+                            <li><span class="emoji">📝</span> Write clearly on white paper</li>
+                            <li><span class="emoji">📷</span> Take a clear, well-lit photo</li>
+                            <li><span class="emoji">📏</span> Include the full text in the image</li>
+                            <li><span class="emoji">✍️</span> Use your normal writing style</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-microphone"></i> For Speech:</h6>
+                        <ul class="list-unstyled">
+                            <li><span class="emoji">🎤</span> Speak clearly and at normal pace</li>
+                            <li><span class="emoji">🔇</span> Record in a quiet environment</li>
+                            <li><span class="emoji">📖</span> Read the text naturally</li>
+                            <li><span class="emoji">⏱️</span> Keep recordings under 2 minutes</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle file input changes
+    const handwritingInput = document.querySelector('input[name="handwriting_image"]');
+    const speechInput = document.querySelector('input[name="speech_audio"]');
+    
+    handwritingInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            const uploadArea = document.getElementById('handwriting-upload');
+            uploadArea.innerHTML = `
+                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                <h5>File selected!</h5>
+                <p class="text-success">${e.target.files[0].name}</p>
+            `;
+        }
+    });
+    
+    speechInput.addEventListener('change', function(e) {
+        if (e.target.files.length > 0) {
+            const uploadArea = document.getElementById('speech-upload');
+            uploadArea.innerHTML = `
+                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                <h5>File selected!</h5>
+                <p class="text-success">${e.target.files[0].name}</p>
+            `;
+        }
+    });
+    
+    // Add click handlers to upload areas
+    document.getElementById('handwriting-upload').addEventListener('click', function() {
+        handwritingInput.click();
+    });
+    
+    document.getElementById('speech-upload').addEventListener('click', function() {
+        speechInput.click();
+    });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,157 @@
+{% extends 'user_interface/base.html' %}
+
+{% block title %}Home - Dyslexia Helper{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-body text-center">
+                <h1 class="display-4 mb-4">
+                    <span class="emoji">🌟</span> Welcome to Dyslexia Helper! <span class="emoji">🌟</span>
+                </h1>
+                <p class="lead">Your friendly learning companion for reading and writing practice!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="feature-icon">
+                    <i class="fas fa-upload"></i>
+                </div>
+                <h3>Upload Your Work</h3>
+                <p>Share your handwriting and speech samples so we can help you improve!</p>
+                <a href="{% url 'upload_data' %}" class="btn btn-primary">
+                    <i class="fas fa-upload"></i> Upload Samples
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="feature-icon">
+                    <i class="fas fa-gamepad"></i>
+                </div>
+                <h3>Fun Exercises</h3>
+                <p>Practice reading, writing, and pronunciation with interactive games!</p>
+                <a href="{% url 'training_exercises' %}" class="btn btn-success">
+                    <i class="fas fa-gamepad"></i> Start Training
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-body text-center">
+                <div class="feature-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h3>Track Progress</h3>
+                <p>See how much you've improved with colorful progress reports!</p>
+                <a href="{% url 'progress_reports' %}" class="btn btn-info">
+                    <i class="fas fa-chart-line"></i> View Progress
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if recent_sessions %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-history"></i> Recent Activities</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for session in recent_sessions %}
+                    <div class="col-md-6 mb-3">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6>{{ session.exercise.name }}</h6>
+                                <p class="mb-1">
+                                    <span class="emoji">⭐</span> Score: {{ session.score|floatformat:0 }}%
+                                </p>
+                                <small class="text-muted">{{ session.start_time|date:"M d, Y" }}</small>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if recent_detections %}
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-search"></i> Latest Analysis</h4>
+            </div>
+            <div class="card-body">
+                {% for detection in recent_detections %}
+                <div class="alert alert-{% if detection.risk_level == 'low' %}success{% elif detection.risk_level == 'medium' %}warning{% else %}danger{% endif %}">
+                    <h6>
+                        <i class="fas fa-{% if detection.risk_level == 'low' %}check-circle{% elif detection.risk_level == 'medium' %}exclamation-triangle{% else %}times-circle{% endif %}"></i>
+                        Risk Level: {{ detection.get_risk_level_display }}
+                    </h6>
+                    <p class="mb-0">Overall Score: {{ detection.overall_risk_score|floatformat:1 }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body text-center">
+                <h4><span class="emoji">💡</span> Quick Tips for Success!</h4>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="feature-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                        <h6>Read Daily</h6>
+                        <p>Practice reading for 15-20 minutes every day!</p>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="feature-icon">
+                            <i class="fas fa-pencil-alt"></i>
+                        </div>
+                        <h6>Write Often</h6>
+                        <p>Keep a journal or write stories to practice writing!</p>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="feature-icon">
+                            <i class="fas fa-microphone"></i>
+                        </div>
+                        <h6>Speak Clearly</h6>
+                        <p>Practice reading aloud to improve pronunciation!</p>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="feature-icon">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <h6>Stay Positive</h6>
+                        <p>Remember, everyone learns at their own pace!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
