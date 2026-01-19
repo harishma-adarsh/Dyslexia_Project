@@ -49,3 +49,13 @@ class EyeTrackingData(models.Model):
     
     class Meta:
         ordering = ['timestamp']
+
+class VideoSample(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    video_file = models.FileField(upload_to='video_samples/')
+    description = models.TextField(blank=True, help_text="Context of the video (e.g., reading session)")
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"Video Sample {self.id} - {self.user.username}"

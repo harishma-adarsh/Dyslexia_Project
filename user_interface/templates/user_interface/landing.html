@@ -3,6 +3,7 @@
 {% block title %}Welcome - Dyslexia Helper{% endblock %}
 
 {% block content %}
+<!-- Landing Page -->
 <div class="row">
     <div class="col-12">
         <div class="card mb-4">
@@ -11,7 +12,8 @@
                     <span class="emoji">🌟</span> Welcome to Dyslexia Helper! <span class="emoji">🌟</span>
                 </h1>
                 <p class="lead">Your friendly learning companion for reading and writing practice!</p>
-                <p class="text-muted">Get started by creating an account or logging in to access your personalized learning journey.</p>
+                <p class="text-muted">Get started by creating an account or logging in to access your personalized
+                    learning journey.</p>
             </div>
         </div>
     </div>
@@ -32,7 +34,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-6 mb-4">
         <div class="card h-100">
             <div class="card-body text-center">
@@ -41,7 +43,7 @@
                 </div>
                 <h3>Already Have Account?</h3>
                 <p>Welcome back! Continue your learning journey.</p>
-                <a href="{% url 'admin:login' %}" class="btn btn-success">
+                <a href="{% url 'login' %}" class="btn btn-success">
                     <i class="fas fa-sign-in-alt"></i> Login
                 </a>
             </div>

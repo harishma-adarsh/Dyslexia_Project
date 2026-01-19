@@ -3,334 +3,718 @@
 {% block title %}{{ exercise.name }} - Dyslexia Helper{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-12">
-        <div class="card mb-4">
-            <div class="card-body text-center">
-                <h2><span class="emoji">🎮</span> {{ exercise.name }}</h2>
-                <p class="lead">{{ exercise.description }}</p>
-                <div class="mb-3">
-                    <span class="badge bg-{% if exercise.difficulty_level == 'beginner' %}success{% elif exercise.difficulty_level == 'intermediate' %}warning{% else %}danger{% endif %} me-2">
-                        {{ exercise.get_difficulty_level_display }}
+<style>
+    .exercise-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .game-card {
+        border-radius: 30px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .canvas-container {
+        position: relative;
+        display: inline-block;
+        background: #f8fbff;
+        border-radius: 20px;
+        border: 4px dashed #cbd5e1;
+        margin: 10px;
+        touch-action: none;
+    }
+
+    .tracing-canvas {
+        cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"></path><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"></path><path d="M2 2l7.586 7.586"></path><circle cx="11" cy="11" r="2"></circle></svg>'), auto;
+        border-radius: 16px;
+    }
+
+    .letter-hint {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 150px;
+        font-weight: 700;
+        color: #e2e8f0;
+        pointer-events: none;
+        user-select: none;
+        opacity: 0.6;
+    }
+
+    .btn-floating {
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        transition: all 0.2s ease;
+    }
+
+    .btn-floating:hover {
+        transform: scale(1.05);
+    }
+
+    .star-animation {
+        position: fixed;
+        pointer-events: none;
+        z-index: 9999;
+    }
+
+    .action-bar {
+        position: sticky;
+        bottom: 20px;
+        z-index: 100;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        border-radius: 50px;
+        padding: 15px 30px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        margin-top: 40px;
+    }
+
+    .exercise-type-badge {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        padding: 5px 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+        display: inline-block;
+    }
+</style>
+
+<div class="exercise-container">
+    <div class="row">
+        <div class="col-12">
+            <div class="card mb-4 game-card">
+                <div class="card-body text-center p-4">
+                    <span
+                        class="exercise-type-badge bg-soft-{% if exercise.exercise_type == 'reading' %}primary{% elif exercise.exercise_type == 'writing' %}success{% else %}warning{% endif %} text-dark">
+                        <i
+                            class="fas {% if exercise.exercise_type == 'reading' %}fa-book-open{% elif exercise.exercise_type == 'writing' %}fa-pencil-alt{% else %}fa-microphone{% endif %}"></i>
+                        {{ exercise.get_exercise_type_display }}
                     </span>
-                    <span class="badge bg-info">
-                        <i class="fas fa-clock"></i> {{ exercise.expected_duration }} minutes
-                    </span>
+                    <h2 class="fw-bold mb-2">{{ exercise.name }}</h2>
+                    <p class="text-muted mb-3">{{ exercise.description }}</p>
+
+                    <div class="d-flex justify-content-center gap-2 mb-4">
+                        <div class="badge bg-soft-info text-dark p-2 px-3 border border-info">
+                            <i class="fas fa-clock text-info"></i> {{ exercise.expected_duration }} min
+                        </div>
+                        <div class="badge bg-soft-primary text-dark p-2 px-3 border border-primary" id="timer-badge">
+                            <i class="fas fa-hourglass-half text-primary"></i> 0s
+                        </div>
+                        <div class="badge bg-soft-warning text-dark p-2 px-3 border border-warning" id="stars-badge">
+                            <i class="fas fa-star text-warning"></i> 0
+                        </div>
+                    </div>
+
+                    <div class="progress mb-2" style="height: 12px; border-radius: 10px; background: #f1f5f9;">
+                        <div class="progress-bar progress-bar-animated bg-success" id="main-progress-bar"
+                            role="progressbar" style="width: 0%; border-radius: 10px;"></div>
+                    </div>
+                    <small class="text-muted" id="progress-text">Let's get started! 🎯</small>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h4><i class="fas fa-play"></i> Exercise Instructions</h4>
-            </div>
-            <div class="card-body">
-                <div class="alert alert-info">
-                    <h6><i class="fas fa-info-circle"></i> Instructions</h6>
-                    <p>{{ exercise.instructions }}</p>
+    <div class="row">
+        <div class="col-12">
+            <div class="card game-card">
+                <div class="card-header bg-transparent d-flex justify-content-between align-items-center p-4">
+                    <h4 class="mb-0 fw-bold"><i class="fas fa-play text-primary"></i> Instructions</h4>
+                    <button class="btn btn-soft-secondary btn-sm" id="enable-sound-btn">
+                        <i class="fas fa-volume-up"></i> Enable Audio
+                    </button>
                 </div>
-                
-                {% if exercise.exercise_type == 'reading' %}
-                    <div class="exercise-content">
-                        <h5><i class="fas fa-book"></i> Reading Exercise</h5>
+                <div class="card-body p-4">
+                    <div class="alert bg-soft-info border-0 mb-4 p-3 radial-blur">
+                        <p class="mb-0 fw-medium">{{ exercise.instructions }}</p>
+                    </div>
+
+                    <div class="exercise-interactive-area text-center">
+                        {% if exercise.exercise_type == 'reading' %}
                         {% if exercise.content.type == 'letter_matching' %}
-                            <div class="letter-matching-game">
-                                <h6>Match the letters with their sounds!</h6>
-                                <div class="row">
-                                    {% for letter in exercise.content.letters %}
-                                    <div class="col-md-2 mb-3">
-                                        <div class="card text-center">
-                                            <div class="card-body">
-                                                <h3 class="display-4">{{ letter }}</h3>
-                                                <button class="btn btn-outline-primary btn-sm" onclick="playSound('{{ letter }}')">
-                                                    <i class="fas fa-volume-up"></i> Sound
-                                                </button>
-                                            </div>
-                                        </div>
+                        <div class="letter-matching-game">
+                            <div class="row justify-content-center">
+                                {% for letter in exercise.content.letters %}
+                                <div class="col-md-3 col-6 mb-4">
+                                    <div class="card border-0 shadow-sm rounded-4 hover-up p-3">
+                                        <h1 class="display-1 fw-bold text-primary mb-3">{{ letter }}</h1>
+                                        <button class="btn btn-primary rounded-pill w-100"
+                                            onclick="playSound('{{ letter }}')">
+                                            <i class="fas fa-volume-up"></i> Listen
+                                        </button>
                                     </div>
-                                    {% endfor %}
                                 </div>
+                                {% endfor %}
                             </div>
+                        </div>
                         {% elif exercise.content.type == 'word_building' %}
-                            <div class="word-building-game">
-                                <h6>Build the word: <span id="target-word" class="fw-bold">CAT</span></h6>
-                                <div class="letter-bank mb-3">
-                                    <h6>Available Letters:</h6>
-                                    {% for letter in exercise.content.letters %}
-                                    <button class="btn btn-outline-secondary me-2 mb-2 letter-btn" 
-                                            onclick="addLetter('{{ letter }}')">{{ letter }}</button>
-                                    {% endfor %}
-                                </div>
-                                <div class="word-display">
-                                    <h4 id="built-word" class="text-primary">_ _ _</h4>
-                                </div>
+                        <div class="word-building-game">
+                            <h3 class="mb-4">Target: <span id="target-word" class="text-primary fw-bold">{{ exercise.content.target|default:'CAT'|upper }}</span></h3>
+                            <div class="d-flex justify-content-center gap-3 mb-5" id="built-word-display">
+                                {% for char in exercise.content.target|default:'CAT' %}
+                                <div class="char-box border-bottom border-4 border-primary px-3 fs-1 fw-bold text-transparent"
+                                    style="min-width: 60px;">?</div>
+                                {% endfor %}
                             </div>
+                            <div class="letter-bank p-4 bg-light rounded-5">
+                                {% for letter in exercise.content.letters %}
+                                <button
+                                    class="btn btn-white shadow-sm border rounded-4 fs-2 fw-bold m-2 p-3 px-4 hover-up"
+                                    onclick="addLetter('{{ letter }}')">{{ letter }}</button>
+                                {% endfor %}
+                            </div>
+                            <button class="btn btn-link text-muted mt-3" onclick="clearWord()">Clear All</button>
+                        </div>
                         {% elif exercise.content.type == 'comprehension' %}
-                            <div class="comprehension-exercise">
-                                <h6>Read the story and answer questions:</h6>
-                                <div class="story-content mb-4">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <h5>{{ exercise.content.stories.0.title }}</h5>
-                                            <p>{{ exercise.content.stories.0.text }}</p>
-                                        </div>
-                                    </div>
+                        <div class="comprehension-exercise text-start">
+                            {% for story in exercise.content.stories %}
+                            <div class="card bg-soft-primary border-0 rounded-5 p-5 mb-5 shadow-sm">
+                                <div class="d-flex justify-content-between align-items-center mb-4">
+                                    <h3 class="fw-bold text-primary mb-0">{{ story.title }}</h3>
+                                    <button class="btn btn-primary rounded-circle p-3"
+                                        onclick="speak('{{ story.title }}. {{ story.text|escapejs }}')">
+                                        <i class="fas fa-volume-up fa-lg"></i>
+                                    </button>
                                 </div>
-                                <div class="questions">
-                                    {% for question in exercise.content.stories.0.questions %}
-                                    <div class="mb-3">
-                                        <label class="form-label">{{ forloop.counter }}. {{ question }}</label>
-                                        <input type="text" class="form-control" name="answer_{{ forloop.counter }}">
-                                    </div>
-                                    {% endfor %}
-                                </div>
+                                <p class="fs-4 lh-lg mb-0 text-dark-50"
+                                    style="font-family: 'Outfit', sans-serif; letter-spacing: 0.5px;">
+                                    {{ story.text }}
+                                </p>
                             </div>
+
+                            <div class="questions p-2">
+                                <h4 class="mb-4 text-secondary"><i class="fas fa-question-circle me-2"></i> Answer the
+                                    questions below:</h4>
+                                {% for question in story.questions %}
+                                <div class="card border-0 shadow-sm rounded-4 p-4 mb-4 bg-white hover-up"
+                                    style="transition: all 0.3s ease;">
+                                    <label class="form-label fw-bold fs-5 mb-3">
+                                        <span class="badge bg-primary rounded-pill me-2">{{ forloop.counter }}</span>
+                                        {{ question }}
+                                    </label>
+                                    <textarea class="form-control form-control-lg exercise-input rounded-4 border-2"
+                                        rows="2" placeholder="Write your answer here..."
+                                        data-type="comprehension-answer"
+                                        oninput="checkComprehensionProgress(this)"></textarea>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endfor %}
+                        </div>
                         {% endif %}
-                    </div>
-                
-                {% elif exercise.exercise_type == 'writing' %}
-                    <div class="exercise-content">
-                        <h5><i class="fas fa-pencil-alt"></i> Writing Exercise</h5>
+
+                        {% elif exercise.exercise_type == 'writing' %}
                         {% if exercise.content.type == 'letter_tracing' %}
-                            <div class="letter-tracing-game">
-                                <h6>Trace these letters carefully:</h6>
-                                <div class="row">
-                                    {% for letter in exercise.content.letters %}
-                                    <div class="col-md-2 mb-3">
-                                        <div class="card text-center">
-                                            <div class="card-body">
-                                                <h2 class="text-muted">{{ letter }}</h2>
-                                                <canvas id="canvas-{{ forloop.counter0 }}" width="100" height="100" 
-                                                        style="border: 1px solid #ccc; cursor: crosshair;"></canvas>
-                                                <button class="btn btn-sm btn-outline-secondary mt-2" 
-                                                        onclick="clearCanvas('canvas-{{ forloop.counter0 }}')">Clear</button>
-                                            </div>
+                        <div class="letter-tracing-game">
+                            <div class="row justify-content-center">
+                                {% for letter in exercise.content.letters %}
+                                <div class="col-md-4 mb-4">
+                                    <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+                                        <div class="canvas-container">
+                                            <div class="letter-hint">{{ letter }}</div>
+                                            <canvas id="canvas-{{ forloop.counter0 }}" class="tracing-canvas"
+                                                width="260" height="260"></canvas>
+                                        </div>
+                                        <div class="d-flex justify-content-between mt-2 px-2">
+                                            <span class="fw-bold fs-4 text-primary">{{ letter }}</span>
+                                            <button class="btn btn-soft-danger btn-sm rounded-pill px-3"
+                                                onclick="clearCanvas('canvas-{{ forloop.counter0 }}')">
+                                                <i class="fas fa-eraser"></i> Clear
+                                            </button>
                                         </div>
                                     </div>
-                                    {% endfor %}
                                 </div>
+                                {% endfor %}
                             </div>
+                        </div>
                         {% elif exercise.content.type == 'word_copying' %}
-                            <div class="word-copying-game">
-                                <h6>Copy these words:</h6>
-                                <div class="row">
-                                    {% for word in exercise.content.words %}
-                                    <div class="col-md-3 mb-3">
-                                        <div class="card">
-                                            <div class="card-body text-center">
-                                                <h4 class="text-primary">{{ word }}</h4>
-                                                <textarea class="form-control mt-2" rows="2" 
-                                                          placeholder="Write the word here..."></textarea>
-                                            </div>
+                        <div class="word-copying-game">
+                            <div class="row justify-content-center">
+                                {% for word in exercise.content.words %}
+                                <div class="col-md-6 mb-4">
+                                    <div class="card border-0 shadow-sm rounded-4 p-4 text-start bg-light">
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h3 class="text-primary fw-bold mb-0">{{ word }}</h3>
+                                            <button class="btn btn-sm btn-outline-primary rounded-pill"
+                                                onclick="speak('{{ word }}')">
+                                                <i class="fas fa-volume-up"></i>
+                                            </button>
                                         </div>
+                                        <textarea class="form-control border-0 shadow-sm rounded-4 exercise-input"
+                                            rows="2" placeholder="Write '{{ word }}'..." data-type="word-copy"
+                                            data-target="{{ word }}" oninput="checkWordCopyProgress(this)"></textarea>
                                     </div>
-                                    {% endfor %}
                                 </div>
+                                {% endfor %}
                             </div>
+                        </div>
                         {% elif exercise.content.type == 'creative_writing' %}
-                            <div class="creative-writing-game">
-                                <h6>Write a story using these words:</h6>
-                                <div class="prompt-words mb-3">
-                                    {% for word in exercise.content.prompt_words %}
-                                    <span class="badge bg-primary me-2">{{ word }}</span>
-                                    {% endfor %}
-                                </div>
-                                <div class="mb-3">
-                                    <label class="form-label">Your Story:</label>
-                                    <textarea class="form-control" rows="8" 
-                                              placeholder="Write your creative story here..."></textarea>
-                                </div>
-                                <small class="text-muted">Minimum {{ exercise.content.min_words }} words</small>
+                        <div class="card bg-soft-success border-0 rounded-5 p-5 mb-4 shadow-sm">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h4 class="fw-bold mb-0">Today's Prompt:</h4>
+                                <button class="btn btn-success rounded-pill px-4"
+                                    onclick="speak('Write a story using these words: {{ exercise.content.prompt_words|join:', ' }}')">
+                                    <i class="fas fa-volume-up me-2"></i> Read Words
+                                </button>
                             </div>
+                            <p class="fs-4 mb-3 text-secondary">Write a fun story using these special words:</p>
+                            <div class="d-flex flex-wrap justify-content-center gap-3">
+                                {% for word in exercise.content.prompt_words %}
+                                <span id="prompt-word-{{ word|slugify }}"
+                                    class="badge bg-white text-success border-2 border-success px-4 py-3 fs-5 rounded-pill shadow-sm prompt-word-badge"
+                                    style="transition: all 0.3s ease; opacity: 0.6;">
+                                    <i class="fas fa-star me-2 d-none"></i>{{ word }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="text-start mt-5">
+                            <div class="d-flex justify-content-between align-items-end mb-3">
+                                <label class="form-label fw-bold fs-4 text-primary">Your Creative Story:</label>
+                                <span class="badge bg-light text-dark border p-2 px-3 rounded-pill fs-6">
+                                    <i class="fas fa-pen-nib me-2"></i> Word Count: <span id="word-count">0</span> / {{ exercise.content.min_words }}
+                                </span>
+                            </div>
+                            <textarea class="form-control rounded-5 p-4 shadow-sm exercise-input" rows="10"
+                                data-type="creative-writing" data-prompts="{{ exercise.content.prompt_words|join:',' }}"
+                                placeholder="Once upon a time..."
+                                style="font-size: 1.2rem; line-height: 1.6; border: 3px solid #e2e8f0; border-radius: 30px !important;"
+                                oninput="checkCreativeWritingProgress(this)"></textarea>
+                            <div class="mt-3 d-flex align-items-center">
+                                <div class="flex-grow-1">
+                                    <i class="fas fa-lightbulb me-2 text-warning"></i>
+                                    <span id="story-feedback-msg" class="text-muted italic">Once upon a time...</span>
+                                </div>
+                                <span class="text-muted small">Tip: Try to use all the green words!</span>
+                            </div>
+                        </div>
                         {% endif %}
-                    </div>
-                
-                {% elif exercise.exercise_type == 'phoneme' %}
-                    <div class="exercise-content">
-                        <h5><i class="fas fa-microphone"></i> Phoneme Exercise</h5>
+
+                        {% elif exercise.exercise_type == 'phoneme' %}
                         {% if exercise.content.type == 'sound_matching' %}
-                            <div class="sound-matching-game">
-                                <h6>Listen and match the sounds!</h6>
-                                <div class="row">
-                                    {% for sound in exercise.content.sounds %}
-                                    <div class="col-md-2 mb-3">
-                                        <div class="card text-center">
-                                            <div class="card-body">
-                                                <button class="btn btn-primary btn-lg mb-2" 
-                                                        onclick="playPhoneme('{{ sound }}')">
-                                                    <i class="fas fa-volume-up"></i>
-                                                </button>
-                                                <p class="mb-0">{{ sound }}</p>
-                                            </div>
+                        <div class="sound-matching-game">
+                            <div class="row justify-content-center">
+                                {% for sound in exercise.content.sounds %}
+                                <div class="col-md-3 col-6 mb-4">
+                                    <div class="card border-0 shadow-sm rounded-4 p-4 hover-up"
+                                        onclick="playPhoneme('{{ sound }}')">
+                                        <div class="mb-3 text-warning">
+                                            <i class="fas fa-microphone fa-3x"></i>
                                         </div>
+                                        <h4 class="fw-bold">{{ sound }}</h4>
+                                        <button class="btn btn-warning rounded-pill btn-sm mt-3 px-4">Play</button>
                                     </div>
-                                    {% endfor %}
                                 </div>
+                                {% endfor %}
                             </div>
+                        </div>
                         {% elif exercise.content.type == 'rhyming' %}
-                            <div class="rhyming-game">
-                                <h6>Find words that rhyme with: <span class="fw-bold text-primary">{{ exercise.content.base_words.0 }}</span></h6>
-                                <div class="options">
-                                    {% for option in exercise.content.options %}
-                                    <button class="btn btn-outline-secondary me-2 mb-2 rhyme-option" 
-                                            onclick="selectRhyme('{{ option }}')">{{ option }}</button>
-                                    {% endfor %}
-                                </div>
-                                <div class="selected-rhymes mt-3">
-                                    <h6>Selected rhymes:</h6>
-                                    <div id="rhyme-selection"></div>
-                                </div>
+                        <div class="rhyming-game">
+                            <div class="card bg-soft-primary border-0 rounded-5 p-4 mb-4">
+                                <h3 class="mb-0">Find words that rhyme with <span class="text-primary fw-bold">{{ exercise.content.base_words|first }}</span></h3>
                             </div>
+                            <div class="options-grid d-flex flex-wrap justify-content-center gap-3">
+                                {% for option in exercise.content.options %}
+                                <button
+                                    class="btn btn-white shadow-sm border rounded-pill fs-4 px-5 py-3 hover-up rhyme-option"
+                                    onclick="selectRhyme(this, '{{ option }}')">{{ option }}</button>
+                                {% endfor %}
+                            </div>
+                        </div>
                         {% elif exercise.content.type == 'blending' %}
-                            <div class="blending-game">
-                                <h6>Blend these sounds to make a word:</h6>
-                                <div class="sound-sequence mb-3">
-                                    {% for sound in exercise.content.sound_sequences.0 %}
-                                    <button class="btn btn-info me-2" onclick="playPhoneme('{{ sound }}')">
-                                        {{ sound }}
+                        <div class="blending-game">
+                            <div class="card bg-soft-warning border-0 rounded-5 p-5 mb-4 text-center">
+                                <div class="mb-4">
+                                    <i class="fas fa-music fa-4x text-warning"></i>
+                                </div>
+                                <h3>Listen to the sequence:</h3>
+                                <div class="d-flex justify-content-center gap-3 mb-4">
+                                    {% for seq in exercise.content.sound_sequences|first %}
+                                    <button class="btn btn-warning btn-lg rounded-circle p-3"
+                                        onclick="speak('{{ seq }}')">
+                                        <i class="fas fa-volume-up"></i>
                                     </button>
                                     {% endfor %}
                                 </div>
-                                <div class="answer-input">
-                                    <label class="form-label">What word do you hear?</label>
-                                    <input type="text" class="form-control" id="blend-answer" 
-                                           placeholder="Type the word here...">
+                                <div class="text-start mt-4">
+                                    <label class="form-label fw-bold">What word did you hear?</label>
+                                    <input type="text" class="form-control form-control-lg rounded-pill exercise-input"
+                                        placeholder="Type the word here...">
                                 </div>
                             </div>
+                        </div>
+                        {% endif %}
                         {% endif %}
                     </div>
-                {% endif %}
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-body text-center">
-                <form method="post" id="exercise-form">
-                    {% csrf_token %}
-                    <input type="hidden" name="session_data" id="session-data" value="{}">
-                    <input type="hidden" name="score" id="exercise-score" value="0">
-                    <input type="hidden" name="duration" id="exercise-duration" value="0">
-                    
-                    <button type="submit" class="btn btn-success btn-lg" id="complete-btn" disabled>
-                        <i class="fas fa-check"></i> Complete Exercise
-                    </button>
-                </form>
-            </div>
+    <div class="action-bar d-flex justify-content-between align-items-center">
+        <div class="text-start">
+            <h6 class="mb-0 fw-bold">Current Score</h6>
+            <span class="fs-4 text-success fw-bold" id="score-display">0%</span>
         </div>
+        <form method="post" id="exercise-form" class="m-0">
+            {% csrf_token %}
+            <input type="hidden" name="session_data" id="session-data" value="{}">
+            <input type="hidden" name="score" id="exercise-score" value="0">
+            <input type="hidden" name="duration" id="exercise-duration" value="0">
+            <button type="submit" class="btn btn-success btn-lg px-5 shadow-lg d-flex align-items-center gap-2"
+                id="complete-btn">
+                <i class="fas fa-check-circle"></i> Complete Exercise
+            </button>
+        </form>
     </div>
 </div>
-{% endblock %}
 
-{% block scripts %}
 <script>
-let startTime = Date.now();
-let sessionData = {};
+    let startTime = Date.now();
+    let sessionData = {};
+    let starsEarned = 0;
+    let scorePercent = 0;
+    let isCompleted = false;
 
-// Timer
-setInterval(() => {
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    document.getElementById('exercise-duration').value = elapsed;
-}, 1000);
+    // Timer
+    setInterval(() => {
+        if (isCompleted) return;
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const m = Math.floor(elapsed / 60);
+        const s = elapsed % 60;
+        document.getElementById('exercise-duration').value = elapsed;
+        const badge = document.getElementById('timer-badge');
+        if (badge) badge.innerHTML = `<i class="fas fa-hourglass-half text-primary"></i> ${m > 0 ? m + 'm ' : ''}${s}s`;
+    }, 1000);
 
-// Sound functions (placeholder)
-function playSound(letter) {
-    // In a real implementation, this would play the sound
-    console.log('Playing sound for:', letter);
-    sessionData[letter] = (sessionData[letter] || 0) + 1;
-}
-
-function playPhoneme(sound) {
-    console.log('Playing phoneme:', sound);
-    sessionData[sound] = (sessionData[sound] || 0) + 1;
-}
-
-// Letter building game
-let currentWord = '';
-function addLetter(letter) {
-    currentWord += letter;
-    document.getElementById('built-word').textContent = currentWord;
-    sessionData.lettersUsed = (sessionData.lettersUsed || 0) + 1;
-    checkCompletion();
-}
-
-// Rhyming game
-let selectedRhymes = [];
-function selectRhyme(word) {
-    if (!selectedRhymes.includes(word)) {
-        selectedRhymes.push(word);
-        const selectionDiv = document.getElementById('rhyme-selection');
-        selectionDiv.innerHTML += `<span class="badge bg-success me-2">${word}</span>`;
-        sessionData.rhymesSelected = selectedRhymes.length;
-        checkCompletion();
+    // Audio functions
+    let audioCtx;
+    function enableSound() {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const btn = document.getElementById('enable-sound-btn');
+        btn.innerHTML = '<i class="fas fa-check"></i> Sound Ready';
+        btn.classList.replace('btn-soft-secondary', 'btn-success');
+        speak('Sound enabled! Ready to learn?');
     }
-}
+    document.getElementById('enable-sound-btn').onclick = enableSound;
 
-// Blending game
-document.getElementById('blend-answer').addEventListener('input', function() {
-    const answer = this.value.toLowerCase();
-    if (answer === 'cat') { // Correct answer for the example
-        sessionData.correctBlend = true;
-        checkCompletion();
+    function speak(text) {
+        if (!('speechSynthesis' in window)) {
+            console.warn("Speech synthesis not supported in this browser.");
+            return;
+        }
+        try {
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance(text);
+            utter.rate = 0.9;
+            utter.pitch = 1.1;
+            window.speechSynthesis.speak(utter);
+        } catch (error) {
+            console.error("Error speaking text:", error);
+        }
     }
-});
 
-// Check if exercise is complete
-function checkCompletion() {
-    const completeBtn = document.getElementById('complete-btn');
-    const scoreInput = document.getElementById('exercise-score');
-    
-    // Simple completion logic - in real implementation, this would be more sophisticated
-    let score = 0;
-    if (sessionData.lettersUsed > 0) score += 30;
-    if (sessionData.rhymesSelected > 0) score += 30;
-    if (sessionData.correctBlend) score += 40;
-    
-    scoreInput.value = Math.min(score, 100);
-    
-    if (score > 0) {
-        completeBtn.disabled = false;
-        completeBtn.innerHTML = `<i class="fas fa-check"></i> Complete Exercise (Score: ${score}%)`;
+    function playSound(letter) {
+        speak(letter);
+        sessionData[letter] = (sessionData[letter] || 0) + 1;
+        awardStar();
+        updateScore(20);
     }
-}
 
-// Update session data before submit
-document.getElementById('exercise-form').addEventListener('submit', function() {
-    document.getElementById('session-data').value = JSON.stringify(sessionData);
-});
+    function playPhoneme(sound) {
+        speak(sound);
+        sessionData[sound] = (sessionData[sound] || 0) + 1;
+        awardStar();
+        updateScore(25);
+    }
 
-// Canvas drawing for letter tracing
-document.querySelectorAll('canvas').forEach(canvas => {
-    const ctx = canvas.getContext('2d');
-    let isDrawing = false;
-    
-    canvas.addEventListener('mousedown', () => isDrawing = true);
-    canvas.addEventListener('mouseup', () => isDrawing = false);
-    canvas.addEventListener('mousemove', (e) => {
-        if (isDrawing) {
-            const rect = canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            
-            ctx.fillStyle = '#000';
-            ctx.beginPath();
-            ctx.arc(x, y, 2, 0, 2 * Math.PI);
-            ctx.fill();
+    // Interactive logic
+    function addLetter(letter) {
+        if (!sessionData.builtWord) sessionData.builtWord = '';
+        sessionData.builtWord += letter;
+
+        speak(letter); // Say the letter!
+
+        const display = document.getElementById('built-word-display');
+        if (!display) return;
+
+        const boxes = display.querySelectorAll('.char-box');
+        if (sessionData.builtWord.length <= boxes.length) {
+            const idx = sessionData.builtWord.length - 1;
+            boxes[idx].textContent = letter;
+            boxes[idx].classList.remove('text-transparent');
+            boxes[idx].classList.add('text-primary');
+            boxes[idx].style.transform = 'scale(1.2)';
+            setTimeout(() => boxes[idx].style.transform = 'scale(1)', 100);
+            updateScore(15);
+        }
+
+        const target = document.getElementById('target-word').textContent.trim();
+        if (sessionData.builtWord.toUpperCase() === target.toUpperCase()) {
+            speak('Great job! ' + target);
+            celebrate();
+            updateScore(100);
+        } else if (sessionData.builtWord.length >= target.length) {
+            setTimeout(() => {
+                if (sessionData.builtWord.toUpperCase() !== target.toUpperCase()) {
+                    speak('Nice try, let\'s try again!');
+                    clearWord();
+                }
+            }, 800);
+        }
+        awardStar();
+        popFeedback(display);
+    }
+
+    function clearWord() {
+        sessionData.builtWord = '';
+        const display = document.getElementById('built-word-display');
+        if (!display) return;
+        display.querySelectorAll('.char-box').forEach(box => {
+            box.textContent = '?';
+            box.classList.add('text-transparent');
+        });
+    }
+
+    function selectRhyme(btn, word) {
+        if (btn.classList.contains('active')) return;
+        btn.classList.add('active', 'btn-success');
+        btn.classList.remove('btn-white');
+        sessionData.rhymes = (sessionData.rhymes || []);
+        sessionData.rhymes.push(word);
+        awardStar();
+        updateScore(25);
+        popFeedback(btn);
+    }
+
+    // Input listeners for text areas/inputs
+    const answeredQuestions = new Set();
+    function checkComprehensionProgress(input) {
+        if (input.dataset.type === 'comprehension-answer') {
+            const questionIdx = Array.from(document.querySelectorAll('[data-type="comprehension-answer"]')).indexOf(input);
+            if (input.value.trim().length > 5 && !answeredQuestions.has(questionIdx)) {
+                answeredQuestions.add(questionIdx);
+                const totalQs = document.querySelectorAll('[data-type="comprehension-answer"]').length;
+                const pointsPerQ = Math.floor(100 / totalQs);
+                updateScore(pointsPerQ);
+                awardStar();
+                popFeedback(input);
+            }
+        }
+    }
+
+    const completedCopies = new Set();
+    function checkWordCopyProgress(input) {
+        const target = input.dataset.target;
+        const current = input.value.trim();
+        if (current.toLowerCase() === target.toLowerCase() && !completedCopies.has(target)) {
+            completedCopies.add(target);
+            input.classList.add('is-valid', 'bg-soft-success');
+            input.disabled = true;
+            updateScore(30);
+            awardStar();
+            celebrate();
+            speak('Perfectly written!');
+            popFeedback(input);
+        }
+    }
+
+    const usedWords = new Set();
+    let lastWordCount = 0;
+    function checkCreativeWritingProgress(input) {
+        if (input.dataset.type !== 'creative-writing') return;
+
+        const text = input.value.trim();
+        const words = text ? text.split(/\s+/) : [];
+        const count = words.length;
+
+        // Update word count display
+        const countDisplay = document.getElementById('word-count');
+        if (countDisplay) countDisplay.textContent = count;
+
+        // Check for prompt words
+        const promptWords = input.dataset.prompts ? input.dataset.prompts.split(',') : [];
+        promptWords.forEach(word => {
+            const slug = word.toLowerCase().replace(/[^a-z0-9]/g, '-');
+            const badge = document.getElementById('prompt-word-' + slug);
+            if (badge && text.toLowerCase().includes(word.toLowerCase())) {
+                if (!usedWords.has(word)) {
+                    usedWords.add(word);
+                    badge.classList.remove('bg-white', 'text-success');
+                    badge.classList.add('bg-success', 'text-white');
+                    badge.style.opacity = "1";
+                    badge.querySelector('i').classList.remove('d-none');
+                    updateScore(15);
+                    awardStar();
+                    popFeedback(badge);
+                }
+            }
+        });
+
+        // Points for word count milestones (every 10 words)
+        if (count >= lastWordCount + 10) {
+            lastWordCount = Math.floor(count / 10) * 10;
+            updateScore(15);
+            awardStar();
+
+            // Update feedback message
+            const msg = document.getElementById('story-feedback-msg');
+            if (msg) {
+                const feedbacks = ["Great start!", "Keep going!", "Amazing detail!", "You're a natural storyteller!", "Wow, what happens next?"];
+                msg.textContent = feedbacks[Math.min(Math.floor(count / 10) - 1, feedbacks.length - 1)];
+                msg.classList.add('text-success');
+            }
+        }
+    }
+
+    document.querySelectorAll('.exercise-input').forEach(input => {
+        if (!input.dataset.type) { // Don't double-trigger for comprehension
+            input.addEventListener('input', function () {
+                if (this.value.trim().length > 3) {
+                    if (!this.dataset.scored) {
+                        this.dataset.scored = "true";
+                        updateScore(25);
+                        awardStar();
+                    }
+                }
+            });
         }
     });
-});
 
-function clearCanvas(canvasId) {
-    const canvas = document.getElementById(canvasId);
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-}
+    // Drawing Logic
+    const canvasData = {};
+    document.querySelectorAll('.tracing-canvas').forEach(canvas => {
+        const ctx = canvas.getContext('2d');
+        let drawing = false;
+        let lastX, lastY;
+
+        ctx.strokeStyle = '#6366f1';
+        ctx.lineWidth = 12;
+        ctx.lineJoin = 'round';
+        ctx.lineCap = 'round';
+
+        const start = (e) => {
+            drawing = true;
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches ? e.touches[0] : e;
+            lastX = touch.clientX - rect.left;
+            lastY = touch.clientY - rect.top;
+        };
+
+        const draw = (e) => {
+            if (!drawing) return;
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches ? e.touches[0] : e;
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(x, y);
+            ctx.stroke();
+            lastX = x;
+            lastY = y;
+            if (!canvasData[canvas.id]) {
+                canvasData[canvas.id] = true;
+                updateScore(15);
+            }
+        };
+
+        const stop = () => { if (drawing) { drawing = false; awardStar(); } };
+
+        canvas.addEventListener('mousedown', start, { passive: true });
+        canvas.addEventListener('mousemove', draw, { passive: true });
+        window.addEventListener('mouseup', stop);
+        canvas.addEventListener('touchstart', start, { passive: true });
+        canvas.addEventListener('touchmove', draw, { passive: true });
+        canvas.addEventListener('touchend', stop);
+    });
+
+    function clearCanvas(id) {
+        const canvas = document.getElementById(id);
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        delete canvasData[id];
+    }
+
+    // Core state management
+    function updateScore(points) {
+        scorePercent = Math.min(scorePercent + points, 100);
+        const display = document.getElementById('score-display');
+        const bar = document.getElementById('main-progress-bar');
+        const btn = document.getElementById('complete-btn');
+
+        if (display) display.textContent = scorePercent + '%';
+        if (bar) bar.style.width = scorePercent + '%';
+
+        document.getElementById('exercise-score').value = (scorePercent / 100).toFixed(2);
+
+        if (btn) {
+            btn.innerHTML = `<i class="fas fa-check-circle"></i> Complete Exercise (Score: ${scorePercent}%)`;
+        }
+
+        if (scorePercent >= 100 && !isCompleted) {
+            isCompleted = true;
+            celebrate();
+            const progressText = document.getElementById('progress-text');
+            if (progressText) progressText.textContent = 'Amazing! You did it! 🌟';
+        }
+    }
+
+    function awardStar() {
+        starsEarned++;
+        const badge = document.getElementById('stars-badge');
+        if (badge) {
+            badge.innerHTML = `<i class="fas fa-star text-warning"></i> ${starsEarned}`;
+            badge.style.transform = 'scale(1.3)';
+            setTimeout(() => badge.style.transform = 'scale(1)', 150);
+        }
+    }
+
+    function celebrate() {
+        const colors = ['#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899'];
+        for (let i = 0; i < 30; i++) {
+            setTimeout(() => {
+                const el = document.createElement('div');
+                el.className = 'star-animation';
+                el.innerHTML = i % 2 ? '⭐' : '✨';
+                el.style.left = Math.random() * 100 + 'vw';
+                el.style.top = '100vh';
+                el.style.fontSize = (20 + Math.random() * 30) + 'px';
+                el.style.color = colors[Math.floor(Math.random() * colors.length)];
+                document.body.appendChild(el);
+
+                el.animate([
+                    { transform: 'translateY(0) rotate(0)', opacity: 1 },
+                    { transform: `translateY(-110vh) rotate(${Math.random() * 360}deg)`, opacity: 0 }
+                ], { duration: 2000 + Math.random() * 1000, easing: 'ease-out' });
+
+                setTimeout(() => el.remove(), 3000);
+            }, i * 50);
+        }
+    }
+
+    function popFeedback(origin) {
+        const rect = origin.getBoundingClientRect();
+        const el = document.createElement('div');
+        el.className = 'star-animation fs-4';
+        el.innerHTML = '✨ Good! ✨';
+        el.style.left = (rect.left + rect.width / 2) + 'px';
+        el.style.top = (rect.top + window.scrollY) + 'px';
+        document.body.appendChild(el);
+        el.animate([{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(-50px)', opacity: 0 }], 800);
+        setTimeout(() => el.remove(), 800);
+    }
+
+    document.getElementById('exercise-form').onsubmit = function () {
+        document.getElementById('session-data').value = JSON.stringify(sessionData);
+        // Ensure score and duration are set just in case
+        document.getElementById('exercise-score').value = (scorePercent / 100).toFixed(2);
+    };
 </script>
 {% endblock %}

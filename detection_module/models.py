@@ -39,6 +39,18 @@ class DetectionResult(models.Model):
     def __str__(self):
         return f"Detection Result {self.id} - Risk: {self.risk_level} ({self.overall_risk_score:.2f})"
 
+    @property
+    def identified_condition(self):
+        conditions = []
+        if self.dyslexia_probability > 0.4:
+            conditions.append("Dyslexia")
+        if self.dysgraphia_probability > 0.4:
+            conditions.append("Dysgraphia")
+        
+        if not conditions:
+            return "No specific condition identified"
+        return " & ".join(conditions)
+
 class DetectionModel(models.Model):
     name = models.CharField(max_length=100)
     version = models.CharField(max_length=20)

@@ -7,7 +7,7 @@
     <div class="col-12">
         <div class="card mb-4">
             <div class="card-body text-center">
-                <h2><span class="emoji">🎮</span> Fun Learning Exercises</h2>
+                <h2><span class="emoji">🕹️</span> Fun Learning Exercises</h2>
                 <p class="lead">Practice reading, writing, and pronunciation with interactive games!</p>
             </div>
         </div>
@@ -15,59 +15,73 @@
 </div>
 
 <div class="row">
+    <div class="col-12 mb-3 text-end">
+        <a class="btn btn-sm btn-outline-light" href="{% url 'training_exercises' %}?refresh=1">
+            <i class="fas fa-shuffle"></i> Try different games
+        </a>
+    </div>
     {% for exercise in exercises %}
     <div class="col-md-6 col-lg-4 mb-4">
-        <div class="card exercise-card h-100" onclick="location.href='{% url 'start_exercise' exercise.id %}'">
+        <div class="card exercise-card h-100" data-url="{% url 'start_exercise' exercise.id %}">
             <div class="card-body">
                 <div class="text-center mb-3">
                     {% if exercise.exercise_type == 'reading' %}
-                        <i class="fas fa-book fa-3x text-primary"></i>
+                    <i class="fas fa-book fa-3x text-primary"></i>
                     {% elif exercise.exercise_type == 'writing' %}
-                        <i class="fas fa-pencil-alt fa-3x text-success"></i>
+                    <i class="fas fa-pencil-alt fa-3x text-success"></i>
                     {% elif exercise.exercise_type == 'phoneme' %}
-                        <i class="fas fa-microphone fa-3x text-warning"></i>
+                    <i class="fas fa-microphone fa-3x text-warning"></i>
                     {% else %}
-                        <i class="fas fa-brain fa-3x text-info"></i>
+                    <i class="fas fa-brain fa-3x text-info"></i>
                     {% endif %}
                 </div>
-                
-                <h5 class="card-title">{{ exercise.name }}</h5>
+
+                <h5 class="card-title">
+                    {{ exercise.name }}
+                    {% if latest_detection %}
+{% if exercise.exercise_type in 'reading,phoneme,comprehension' and latest_detection.dyslexia_probability > 0.4 %}
+                    <span class="badge bg-danger float-end"><i class="fas fa-star"></i> Recommended</span>
+                    {% elif exercise.exercise_type == 'writing' and latest_detection.dysgraphia_probability > 0.4 %}
+                    <span class="badge bg-danger float-end"><i class="fas fa-star"></i> Recommended</span>
+                    {% endif %}
+                    {% endif %}
+                </h5>
                 <p class="card-text">{{ exercise.description }}</p>
-                
+
                 <div class="mb-3">
-                    <span class="badge bg-{% if exercise.difficulty_level == 'beginner' %}success{% elif exercise.difficulty_level == 'intermediate' %}warning{% else %}danger{% endif %}">
+                    <span
+                        class="badge bg-{% if exercise.difficulty_level == 'beginner' %}success{% elif exercise.difficulty_level == 'intermediate' %}warning{% else %}danger{% endif %}">
                         {{ exercise.get_difficulty_level_display }}
                     </span>
                     <span class="badge bg-info">
                         <i class="fas fa-clock"></i> {{ exercise.expected_duration }} min
                     </span>
                 </div>
-                
-                {% for progress in user_progress %}
-                    {% if progress.exercise.id == exercise.id %}
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between">
-                            <small>Progress</small>
-                            <small>{{ progress.mastery_level|floatformat:0 }}%</small>
-                        </div>
-                        <div class="progress">
-                            <div class="progress-bar" style="width: {{ progress.mastery_level|floatformat:0 }}%"></div>
-                        </div>
-                        <small class="text-muted">
-                            <i class="fas fa-trophy"></i> Best: {{ progress.best_score|floatformat:0 }}% | 
-                            <i class="fas fa-repeat"></i> Attempts: {{ progress.attempts }}
-                        </small>
+
+                {% if exercise.user_progress %}
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between">
+                        <small>Progress</small>
+                        <small>{% widthratio exercise.user_progress.mastery_level 1 100 %}%</small>
                     </div>
-                    {% endif %}
-                {% empty %}
-                    <div class="mb-3">
-                        <small class="text-muted">New exercise - let's get started!</small>
+                    <div class="progress">
+                        <div class="progress-bar"
+                            data-progress="{% widthratio exercise.user_progress.mastery_level 1 100 %}"></div>
                     </div>
-                {% endfor %}
-                
-                <button class="btn btn-primary w-100">
+                    <small class="text-muted">
+                        <i class="fas fa-trophy"></i> Best: {% widthratio exercise.user_progress.best_score 1 100 %}% |
+                        <i class="fas fa-repeat"></i> Attempts: {{ exercise.user_progress.attempts }}
+                    </small>
+                </div>
+                {% else %}
+                <div class="mb-3">
+                    <small class="text-muted">New exercise - let's get started!</small>
+                </div>
+                {% endif %}
+
+                <a class="btn btn-primary w-100" href="{% url 'start_exercise' exercise.id %}">
                     <i class="fas fa-play"></i> Start Exercise
-                </button>
+                </a>
             </div>
         </div>
     </div>
@@ -96,52 +110,28 @@
                         <div class="feature-icon">
                             <i class="fas fa-trophy text-warning"></i>
                         </div>
-                        <h5>{{ user_progress|length }}</h5>
+                        <h5>{{ user_progress_count }}</h5>
                         <p class="text-muted">Exercises Started</p>
                     </div>
                     <div class="col-md-3">
                         <div class="feature-icon">
                             <i class="fas fa-star text-success"></i>
                         </div>
-                        <h5>
-                            {% if user_progress %}
-                                {% for progress in user_progress %}
-                                    {% if forloop.first %}{{ progress.best_score|floatformat:0 }}{% endif %}
-                                {% endfor %}
-                            {% else %}
-                                0
-                            {% endif %}%
-                        </h5>
+                        <h5>{{ best_score|floatformat:0 }}%</h5>
                         <p class="text-muted">Best Score</p>
                     </div>
                     <div class="col-md-3">
                         <div class="feature-icon">
                             <i class="fas fa-clock text-info"></i>
                         </div>
-                        <h5>
-                            {% if user_progress %}
-                                {% for progress in user_progress %}
-                                    {% if forloop.first %}{{ progress.total_time_spent|floatformat:0 }}{% endif %}
-                                {% endfor %}
-                            {% else %}
-                                0
-                            {% endif %}
-                        </h5>
+                        <h5>{{ total_time|floatformat:0 }}</h5>
                         <p class="text-muted">Minutes Practiced</p>
                     </div>
                     <div class="col-md-3">
                         <div class="feature-icon">
                             <i class="fas fa-medal text-primary"></i>
                         </div>
-                        <h5>
-                            {% if user_progress %}
-                                {% for progress in user_progress %}
-                                    {% if progress.mastery_level >= 0.8 %}{{ forloop.counter0|add:1 }}{% endif %}
-                                {% endfor %}
-                            {% else %}
-                                0
-                            {% endif %}
-                        </h5>
+                        <h5>{{ mastered_count }}</h5>
                         <p class="text-muted">Mastered</p>
                     </div>
                 </div>
@@ -186,15 +176,31 @@
 
 {% block scripts %}
 <script>
-// Add hover effects to exercise cards
-document.querySelectorAll('.exercise-card').forEach(card => {
-    card.addEventListener('mouseenter', function() {
-        this.style.transform = 'translateY(-5px)';
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize progress bars
+        document.querySelectorAll('.progress-bar[data-progress]').forEach(function (bar) {
+            const progress = bar.getAttribute('data-progress');
+            bar.style.width = progress + '%';
+        });
+
+        // Card navigation
+        document.querySelectorAll('.exercise-card').forEach(card => {
+            card.addEventListener('click', function (e) {
+                // Don't navigate if a button or link inside the card was clicked
+                if (e.target.closest('a, button')) return;
+
+                const url = this.getAttribute('data-url');
+                if (url) location.href = url;
+            });
+
+            card.addEventListener('mouseenter', function () {
+                this.style.transform = 'translateY(-5px)';
+            });
+
+            card.addEventListener('mouseleave', function () {
+                this.style.transform = 'translateY(0)';
+            });
+        });
     });
-    
-    card.addEventListener('mouseleave', function() {
-        this.style.transform = 'translateY(0)';
-    });
-});
 </script>
 {% endblock %}

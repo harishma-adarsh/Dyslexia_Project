@@ -3,6 +3,7 @@
 {% block title %}Home - Dyslexia Helper{% endblock %}
 
 {% block content %}
+<!-- Home Page -->
 <div class="row">
     <div class="col-12">
         <div class="card mb-4">
@@ -16,8 +17,8 @@
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-4 mb-4">
+<div class="row justify-content-center">
+    <div class="col-md-{% if has_detection %}4{% else %}6{% endif %} mb-4">
         <div class="card h-100">
             <div class="card-body text-center">
                 <div class="feature-icon">
@@ -31,7 +32,8 @@
             </div>
         </div>
     </div>
-    
+
+    {% if has_detection %}
     <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-body text-center">
@@ -46,7 +48,7 @@
             </div>
         </div>
     </div>
-    
+
     <div class="col-md-4 mb-4">
         <div class="card h-100">
             <div class="card-body text-center">
@@ -61,59 +63,8 @@
             </div>
         </div>
     </div>
+    {% endif %}
 </div>
-
-{% if recent_sessions %}
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h4><i class="fas fa-history"></i> Recent Activities</h4>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    {% for session in recent_sessions %}
-                    <div class="col-md-6 mb-3">
-                        <div class="card bg-light">
-                            <div class="card-body">
-                                <h6>{{ session.exercise.name }}</h6>
-                                <p class="mb-1">
-                                    <span class="emoji">⭐</span> Score: {{ session.score|floatformat:0 }}%
-                                </p>
-                                <small class="text-muted">{{ session.start_time|date:"M d, Y" }}</small>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-
-{% if recent_detections %}
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card">
-            <div class="card-header">
-                <h4><i class="fas fa-search"></i> Latest Analysis</h4>
-            </div>
-            <div class="card-body">
-                {% for detection in recent_detections %}
-                <div class="alert alert-{% if detection.risk_level == 'low' %}success{% elif detection.risk_level == 'medium' %}warning{% else %}danger{% endif %}">
-                    <h6>
-                        <i class="fas fa-{% if detection.risk_level == 'low' %}check-circle{% elif detection.risk_level == 'medium' %}exclamation-triangle{% else %}times-circle{% endif %}"></i>
-                        Risk Level: {{ detection.get_risk_level_display }}
-                    </h6>
-                    <p class="mb-0">Overall Score: {{ detection.overall_risk_score|floatformat:1 }}</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
 
 <div class="row mt-4">
     <div class="col-12">
