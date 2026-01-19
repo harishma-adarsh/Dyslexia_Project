@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detection Results - Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f7fafc;
+            color: #2d3748;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 40px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .admin-name {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 10px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .btn-logout:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .nav-tabs {
+            background: white;
+            padding: 0 40px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            display: flex;
+            gap: 30px;
+        }
+
+        .nav-tabs a {
+            padding: 18px 0;
+            color: #718096;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tabs a:hover,
+        .nav-tabs a.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px;
+        }
+
+        .page-title {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 30px;
+            color: #2d3748;
+        }
+
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .filter-group {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .filter-group label {
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .filter-group select {
+            padding: 8px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .filter-group button {
+            padding: 8px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .section {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f7fafc;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            color: #4a5568;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        td {
+            padding: 15px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-high {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .badge-medium {
+            background: #feebc8;
+            color: #c05621;
+        }
+
+        .badge-low {
+            background: #c6f6d5;
+            color: #2f855a;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #a0aec0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h1>🎯 Admin Dashboard</h1>
+        <div class="header-right">
+            <span class="admin-name">Welcome, {{ user.username }}</span>
+            <a href="{% url 'admin_logout' %}" class="btn-logout">Logout</a>
+        </div>
+    </div>
+
+    <div class="nav-tabs">
+        <a href="{% url 'admin_dashboard' %}">Dashboard</a>
+        <a href="{% url 'admin_users' %}">Users</a>
+        <a href="{% url 'admin_detections' %}" class="active">Detections</a>
+        <a href="{% url 'admin_exercises' %}">Exercises</a>
+    </div>
+
+    <div class="container">
+        <h2 class="page-title">Detection Results</h2>
+
+        <div class="filters">
+            <form method="GET" class="filter-group">
+                <label>Filter by Risk Level:</label>
+                <select name="risk_level">
+                    <option value="">All</option>
+                    <option value="high" {% if risk_filter=='high' %}selected{% endif %}>High</option>
+                    <option value="medium" {% if risk_filter=='medium' %}selected{% endif %}>Medium</option>
+                    <option value="low" {% if risk_filter=='low' %}selected{% endif %}>Low</option>
+                </select>
+                <button type="submit">Apply Filter</button>
+            </form>
+        </div>
+
+        <div class="section">
+            {% if detections %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Date</th>
+                        <th>Risk Level</th>
+                        <th>Dyslexia Prob.</th>
+                        <th>Dysgraphia Prob.</th>
+                        <th>Overall Score</th>
+                        <th>Confidence</th>
+                        <th>Samples</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detection in detections %}
+                    <tr>
+                        <td><strong>{{ detection.user.username }}</strong></td>
+                        <td>{{ detection.detection_timestamp|date:"M d, Y H:i" }}</td>
+                        <td>
+                            <span class="badge badge-{{ detection.risk_level }}">
+                                {{ detection.risk_level }}
+                            </span>
+                        </td>
+                        <td>{{ detection.dyslexia_probability|floatformat:3 }}</td>
+                        <td>{{ detection.dysgraphia_probability|floatformat:3 }}</td>
+                        <td>{{ detection.overall_risk_score|floatformat:3 }}</td>
+                        <td>{{ detection.detection_confidence|floatformat:2 }}%</td>
+                        <td>
+                            {% if detection.handwriting_sample %}✓ HW{% endif %}
+                            {% if detection.speech_sample %}✓ SP{% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state">
+                <p>No detection results found</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+
+</html>

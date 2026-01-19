@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import admin_views
 
 urlpatterns = [
     path('', views.home, name='home'),
@@ -17,4 +18,12 @@ urlpatterns = [
     # API endpoints
     path('api/upload/handwriting/', views.upload_handwriting_api, name='upload_handwriting_api'),
     path('api/upload/speech/', views.upload_speech_api, name='upload_speech_api'),
+    
+    # Admin routes
+    path('admin-login/', admin_views.admin_login_view, name='admin_login'),
+    path('admin-dashboard/', admin_views.admin_dashboard, name='admin_dashboard'),
+    path('admin-users/', admin_views.admin_users, name='admin_users'),
+    path('admin-detections/', admin_views.admin_detections, name='admin_detections'),
+    path('admin-exercises/', admin_views.admin_exercises, name='admin_exercises'),
+    path('admin-logout/', admin_views.admin_logout, name='admin_logout'),
 ]
