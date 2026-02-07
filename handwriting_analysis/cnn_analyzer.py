@@ -47,6 +47,10 @@ class HandwritingCNNAnalyzer:
         # Load and convert to grayscale
         image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
         
+        if image is None:
+            # Return a blank canvas if image can't be read
+            return np.ones((64, 64), dtype=np.float32)
+        
         # Resize to standard size
         image = cv2.resize(image, (64, 64))
         
@@ -156,10 +160,18 @@ class HandwritingCNNAnalyzer:
             stroke_pattern_score = float(cnn_prediction[2])
             overall_score = float(cnn_prediction[3])
         else:
-            # Fallback to traditional computer vision methods
-            irregular_shapes_score = self.analyze_irregular_shapes(processed_image)
-            spacing_issues_score = self.analyze_spacing_issues(processed_image)
-            stroke_pattern_score = self.analyze_stroke_patterns(processed_image)
+            # Fallback to traditional computer vision methods with calibrated scaling
+            # Scale raw metrics so normal writing stays < 0.3 and poor writing > 0.7
+            raw_irregular = self.analyze_irregular_shapes(processed_image)
+            raw_spacing = self.analyze_spacing_issues(processed_image)
+            raw_stroke = self.analyze_stroke_patterns(processed_image)
+            
+            # Balanced scaling: Noise floor at 0.15 allows high-risk cases to trigger.
+            # Risk starts to climb after 0.15 and crosses 0.5 when raw > 0.4.
+            irregular_shapes_score = min(max(raw_irregular - 0.15, 0) * 2.0, 1.0)
+            spacing_issues_score = min(max(raw_spacing - 0.15, 0) * 2.0, 1.0)
+            stroke_pattern_score = min(max(raw_stroke - 0.15, 0) * 2.0, 1.0)
+            
             overall_score = (irregular_shapes_score + spacing_issues_score + stroke_pattern_score) / 3
         
         # Generate detailed analysis

@@ -14,6 +14,7 @@ urlpatterns = [
     path('progress/', views.progress_reports, name='progress_reports'),
     path('profile/', views.profile, name='profile'),
     path('logout/', views.logout_view, name='logout'),
+    path('clear-detections/', views.clear_detections, name='clear_detections'),
     
     # API endpoints
     path('api/upload/handwriting/', views.upload_handwriting_api, name='upload_handwriting_api'),

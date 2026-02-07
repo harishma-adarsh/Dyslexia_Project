@@ -22,7 +22,6 @@ class DetectionResult(models.Model):
     # Risk Levels
     RISK_LEVELS = [
         ('low', 'Low Risk'),
-        ('medium', 'Medium Risk'),
         ('high', 'High Risk'),
     ]
     risk_level = models.CharField(max_length=10, choices=RISK_LEVELS)
@@ -42,9 +41,9 @@ class DetectionResult(models.Model):
     @property
     def identified_condition(self):
         conditions = []
-        if self.dyslexia_probability > 0.4:
+        if self.dyslexia_probability >= 0.5:
             conditions.append("Dyslexia")
-        if self.dysgraphia_probability > 0.4:
+        if self.dysgraphia_probability >= 0.5:
             conditions.append("Dysgraphia")
         
         if not conditions:

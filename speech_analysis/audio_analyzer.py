@@ -240,15 +240,24 @@ class SpeechAnalyzer:
         return phoneme_stats
     
     def _calculate_pronunciation_score(self, pronunciation_features: Dict, phoneme_analysis: Dict) -> float:
-        """Calculate pronunciation accuracy score"""
-        # This is a simplified scoring mechanism
-        # In a real system, this would use trained models
+        """Calculate pronunciation accuracy score (1.0 is perfect)"""
+        if pronunciation_features['f1_f2_ratio'] == 0:
+            return 0.92  # Default to high score for missing data to avoid false risk
+            
+        # Balanced window: Normal range is 0.25 - 0.5 for F1/F2
+        ratio1 = pronunciation_features['f1_f2_ratio']
+        if 0.25 <= ratio1 <= 0.5:
+            f1_f2_score = 1.0
+        else:
+            # Calibrated drop off to catch high risk
+            f1_f2_score = max(0, 1.0 - abs(ratio1 - 0.4) * 3.5)
+            
+        ratio2 = pronunciation_features['f2_f3_ratio']
+        if 0.2 <= ratio2 <= 0.4:
+            f2_f3_score = 1.0
+        else:
+            f2_f3_score = max(0, 1.0 - abs(ratio2 - 0.3) * 4.0)
         
-        # Score based on formant ratios (simplified)
-        f1_f2_score = min(pronunciation_features['f1_f2_ratio'] / 0.5, 1.0) if pronunciation_features['f1_f2_ratio'] > 0 else 0
-        f2_f3_score = min(pronunciation_features['f2_f3_ratio'] / 0.3, 1.0) if pronunciation_features['f2_f3_ratio'] > 0 else 0
-        
-        # Combine scores
         pronunciation_score = (f1_f2_score + f2_f3_score) / 2
         return min(max(pronunciation_score, 0), 1)
     
@@ -295,6 +304,10 @@ class SpeechAnalyzer:
         duration = len(audio) / sr
         word_count = len(text_content.split()) if text_content else 1
         reading_speed = (word_count / duration) * 60 if duration > 0 else 0
+        
+        # Normalize reading speed (assume 80 WPM is normal/passing for diagnosis context)
+        normalized_speed = min(reading_speed / 80.0, 1.0)
+        risk_score = 1.0 - normalized_speed
         
         # Calculate pitch variation
         pitch_variation = self._calculate_pitch_variation(audio)

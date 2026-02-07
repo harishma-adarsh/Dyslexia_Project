@@ -114,7 +114,7 @@
             border-radius: 15px;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             transition: all 0.3s ease;
-            border-left: 4px solid;
+            border-left: 4px solid transparent;
         }
 
         .stat-card:hover {
@@ -286,6 +286,7 @@
             background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
             border-radius: 10px;
             transition: width 0.5s ease;
+            width: calc(var(--w, 0) * 1%);
         }
 
         /* Empty State */
@@ -303,6 +304,44 @@
         }
 
         /* Responsive */
+        /* Utility Classes */
+        .mb-15 {
+            margin-bottom: 15px;
+        }
+
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .mb-5 {
+            margin-bottom: 5px;
+        }
+
+        .fs-14 {
+            font-size: 14px;
+        }
+
+        .text-gray {
+            color: #718096;
+        }
+
+        .font-bold {
+            font-weight: 600;
+        }
+
+        .bg-red {
+            background: #f56565 !important;
+        }
+
+        .bg-orange {
+            background: #ed8936 !important;
+        }
+
+        .bg-green {
+            background: #48bb78 !important;
+        }
+
         @media (max-width: 768px) {
             .header {
                 padding: 15px 20px;
@@ -404,59 +443,44 @@
         <div class="chart-container">
             <div class="chart-box">
                 <div class="chart-title">Risk Level Distribution</div>
-                <div style="margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span style="font-size: 14px; color: #718096;">High Risk</span>
-                        <span style="font-size: 14px; font-weight: 600;">{{ high_risk_count }}</span>
+                <div class="mb-15">
+                    <div class="flex-between mb-5">
+                        <span class="fs-14 text-gray">High Risk</span>
+                        <span class="fs-14 font-bold">{{ high_risk_count }}</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill"
-                            style="width: {% if total_detections > 0 %}{{ high_risk_count|floatformat:0|add:'0' }}{% else %}0{% endif %}%; background: #f56565;">
-                        </div>
-                    </div>
-                </div>
-                <div style="margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span style="font-size: 14px; color: #718096;">Medium Risk</span>
-                        <span style="font-size: 14px; font-weight: 600;">{{ medium_risk_count }}</span>
-                    </div>
-                    <div class="progress-bar">
-                        <div class="progress-fill"
-                            style="width: {% if total_detections > 0 %}{{ medium_risk_count|floatformat:0|add:'0' }}{% else %}0{% endif %}%; background: #ed8936;">
-                        </div>
+                        <div class="progress-fill bg-red" style="--w: {{ high_risk_pct|default:0 }};"></div>
                     </div>
                 </div>
                 <div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span style="font-size: 14px; color: #718096;">Low Risk</span>
-                        <span style="font-size: 14px; font-weight: 600;">{{ low_risk_count }}</span>
+                    <div class="flex-between mb-5">
+                        <span class="fs-14 text-gray">Low Risk</span>
+                        <span class="fs-14 font-bold">{{ low_risk_count }}</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill"
-                            style="width: {% if total_detections > 0 %}{{ low_risk_count|floatformat:0|add:'0' }}{% else %}0{% endif %}%; background: #48bb78;">
-                        </div>
+                        <div class="progress-fill bg-green" style="--w: {{ low_risk_pct|default:0 }};"></div>
                     </div>
                 </div>
             </div>
 
             <div class="chart-box">
                 <div class="chart-title">Average Detection Probabilities</div>
-                <div style="margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span style="font-size: 14px; color: #718096;">Dyslexia</span>
-                        <span style="font-size: 14px; font-weight: 600;">{{ avg_dyslexia_prob|floatformat:1 }}%</span>
+                <div class="mb-15">
+                    <div class="flex-between mb-5">
+                        <span class="fs-14 text-gray">Dyslexia</span>
+                        <span class="fs-14 font-bold">{{ avg_dyslexia_prob|floatformat:1 }}%</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: {{ avg_dyslexia_prob }}%;"></div>
+                        <div class="progress-fill" style="--w: {{ avg_dyslexia_prob|default:0 }};"></div>
                     </div>
                 </div>
                 <div>
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                        <span style="font-size: 14px; color: #718096;">Dysgraphia</span>
-                        <span style="font-size: 14px; font-weight: 600;">{{ avg_dysgraphia_prob|floatformat:1 }}%</span>
+                    <div class="flex-between mb-5">
+                        <span class="fs-14 text-gray">Dysgraphia</span>
+                        <span class="fs-14 font-bold">{{ avg_dysgraphia_prob|floatformat:1 }}%</span>
                     </div>
                     <div class="progress-bar">
-                        <div class="progress-fill" style="width: {{ avg_dysgraphia_prob }}%;"></div>
+                        <div class="progress-fill" style="--w: {{ avg_dysgraphia_prob|default:0 }};"></div>
                     </div>
                 </div>
             </div>

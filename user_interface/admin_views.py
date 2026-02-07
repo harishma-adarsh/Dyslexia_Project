@@ -80,7 +80,6 @@ def admin_dashboard(request):
     ).order_by('risk_level')
     
     high_risk_count = DetectionResult.objects.filter(risk_level='high').count()
-    medium_risk_count = DetectionResult.objects.filter(risk_level='medium').count()
     low_risk_count = DetectionResult.objects.filter(risk_level='low').count()
     
     # Average probabilities
@@ -148,8 +147,9 @@ def admin_dashboard(request):
         'total_detections': total_detections,
         'detections_today': detections_today,
         'high_risk_count': high_risk_count,
-        'medium_risk_count': medium_risk_count,
         'low_risk_count': low_risk_count,
+        'high_risk_pct': (high_risk_count * 100 / total_detections) if total_detections > 0 else 0,
+        'low_risk_pct': (low_risk_count * 100 / total_detections) if total_detections > 0 else 0,
         'avg_dyslexia_prob': avg_dyslexia_prob * 100,
         'avg_dysgraphia_prob': avg_dysgraphia_prob * 100,
         'risk_distribution': risk_distribution,

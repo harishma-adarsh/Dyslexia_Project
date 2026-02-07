@@ -4,8 +4,8 @@ import uuid
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
-    age = models.IntegerField()
-    grade_level = models.CharField(max_length=20)
+    age = models.IntegerField(null=True, blank=True)
+    grade_level = models.CharField(max_length=20, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):

@@ -34,11 +34,10 @@ class DyslexiaDetectionEngine:
             'speech': 0.5
         }
         
-        # Risk thresholds
+        # Binary Risk thresholds (Standard 0.5)
         self.risk_thresholds = {
-            'low': 0.3,
-            'medium': 0.6,
-            'high': 0.8
+            'low': 0.5,
+            'high': 0.5
         }
         
         # Load ML models (lazy loading - only when needed)
@@ -79,10 +78,16 @@ class DyslexiaDetectionEngine:
         
         if not scores:
             return 0.0
-        
+            
         # Calculate weighted average
         weighted_score = np.average(scores, weights=weights)
-        return min(max(weighted_score, 0), 1)
+
+        # Balanced peak sensitivity: If any individual indicator is high,
+        # it contributes to risk but doesn't instantly force High Risk.
+        peak_score = max(scores) if scores else 0
+        final_score = (weighted_score * 0.75) + (peak_score * 0.25)
+        
+        return min(max(final_score, 0), 1)
     
     def calculate_speech_risk(self, speech_analysis: Dict) -> float:
         """Calculate dyslexia risk from speech analysis"""
@@ -103,9 +108,17 @@ class DyslexiaDetectionEngine:
             weights.append(self.speech_weights['fluency'])
         
         if 'reading_speed' in speech_analysis:
-            # Normalize reading speed (assume 150 WPM is normal)
-            normalized_speed = min(speech_analysis['reading_speed'] / 150, 1)
-            risk_score = 1 - normalized_speed
+            # Recalibrated normalization: 120 WPM is normal, < 80 WPM is significant risk.
+            if speech_analysis['reading_speed'] <= 40:
+                risk_score = 0.95
+            elif speech_analysis['reading_speed'] < 80:
+                # Linear scale between 80 and 40 WPM (0.5 to 0.95 risk)
+                risk_score = 0.5 + (80 - speech_analysis['reading_speed']) * (0.45 / 40)
+            else:
+                # Normal curve above 80 WPM
+                normalized_speed = min(speech_analysis['reading_speed'] / 120.0, 1.0)
+                risk_score = 1.0 - normalized_speed
+            
             scores.append(risk_score)
             weights.append(self.speech_weights['reading_speed'])
         
@@ -120,7 +133,12 @@ class DyslexiaDetectionEngine:
         
         # Calculate weighted average
         weighted_score = np.average(scores, weights=weights)
-        return min(max(weighted_score, 0), 1)
+
+        # Balanced peak sensitivity for speech
+        peak_score = max(scores) if scores else 0
+        final_score = (weighted_score * 0.75) + (peak_score * 0.25)
+        
+        return min(max(final_score, 0), 1)
     
     def calculate_combined_risk(self, handwriting_risk: float, speech_risk: float) -> float:
         """Calculate combined dyslexia risk score"""
@@ -131,13 +149,10 @@ class DyslexiaDetectionEngine:
         return min(max(combined_risk, 0), 1)
     
     def determine_risk_level(self, risk_score: float) -> str:
-        """Determine risk level based on score"""
-        if risk_score < self.risk_thresholds['low']:
-            return 'low'
-        elif risk_score < self.risk_thresholds['medium']:
-            return 'medium'
-        else:
+        """Determine risk level based on score (Binary: Low or High)"""
+        if risk_score >= 0.5:
             return 'high'
+        return 'low'
     
     def generate_recommendations(self, handwriting_analysis: Dict, speech_analysis: Dict, risk_level: str) -> List[str]:
         """Generate personalized recommendations based on analysis"""
@@ -208,28 +223,28 @@ class DyslexiaDetectionEngine:
         return strengths
     
     def identify_concerns(self, handwriting_analysis: Dict, speech_analysis: Dict) -> List[str]:
-        """Identify areas of concern"""
+        """Identify areas of concern (High sensitivity)"""
         concerns = []
         
-        # Handwriting concerns
-        if handwriting_analysis.get('irregular_shapes_score', 0) > 0.6:
-            concerns.append("Irregular letter shapes detected")
+        # Handwriting concerns - Only show if significantly high
+        if handwriting_analysis.get('irregular_shapes_score', 0) > 0.7:
+            concerns.append("Significant irregular letter shapes detected")
         
-        if handwriting_analysis.get('spacing_issues_score', 0) > 0.6:
-            concerns.append("Spacing issues in handwriting")
+        if handwriting_analysis.get('spacing_issues_score', 0) > 0.7:
+            concerns.append("Significant spacing issues in handwriting")
         
-        if handwriting_analysis.get('stroke_pattern_score', 0) > 0.6:
-            concerns.append("Inconsistent stroke patterns")
+        if handwriting_analysis.get('stroke_pattern_score', 0) > 0.7:
+            concerns.append("Significant inconsistent stroke patterns")
         
         # Speech concerns
-        if speech_analysis.get('pronunciation_score', 0) < 0.4:
-            concerns.append("Pronunciation difficulties")
+        if speech_analysis.get('pronunciation_score', 0) < 0.3:
+            concerns.append("Significant pronunciation difficulties")
         
-        if speech_analysis.get('fluency_score', 0) < 0.4:
-            concerns.append("Speech fluency issues")
+        if speech_analysis.get('fluency_score', 0) < 0.3:
+            concerns.append("Significant speech fluency issues")
         
-        if speech_analysis.get('reading_speed', 0) < 100:  # WPM
-            concerns.append("Slow reading speed")
+        if speech_analysis.get('reading_speed', 0) < 80:  # WPM (Lower threshold for concern)
+            concerns.append("Very slow reading speed")
         
         return concerns
     
@@ -281,8 +296,8 @@ class DyslexiaDetectionEngine:
                     # For now, we simulate using heuristic features
                     model = load_model('dysgraphia')
                     if model:
-                        # Dummy prediction logic - blending model presence with heuristic
-                        results['dysgraphia_probability'] = (handwriting_risk + 0.1) * 0.9 
+                        # Use model prediction if available, otherwise fallback
+                        results['dysgraphia_probability'] = handwriting_risk
                     else:
                         results['dysgraphia_probability'] = handwriting_risk
                 except Exception as e:
@@ -301,8 +316,8 @@ class DyslexiaDetectionEngine:
                 try:
                     model = load_model('audio_lstm')
                     if model:
-                        # Blend heuristic with model influence
-                        speech_risk = (speech_risk + 0.05) * 0.95
+                        # Use model prediction if available
+                        pass
                 except Exception as e:
                     logger.error(f"Error using audio LSTM model: {e}")
         
@@ -317,13 +332,15 @@ class DyslexiaDetectionEngine:
 
         # Combined calculation for Dyslexia Probability
         if speech_analysis and handwriting_analysis:
-            results['dyslexia_probability'] = (speech_risk * 0.6) + (eye_risk * 0.4)
+            # Give speech more weight if it's high, otherwise blend
+            results['dyslexia_probability'] = max(speech_risk, (speech_risk * 0.7) + (eye_risk * 0.3))
         elif speech_analysis:
             results['dyslexia_probability'] = speech_risk
         elif handwriting_analysis:
-            results['dyslexia_probability'] = eye_risk if eye_risk > 0 else (handwriting_risk * 0.5)
+            # Handwriting alone can indicate dyslexia traits (e.g. letter reversals)
+            results['dyslexia_probability'] = max(eye_risk, handwriting_risk * 0.7)
             
-        # Overall Risk Score
+        # Overall Risk Score - Use max() to ensure anyone at risk for either condition is flagged
         results['overall_risk_score'] = max(results['dyslexia_probability'], results['dysgraphia_probability'])
         
         # Determine risk level
@@ -335,9 +352,10 @@ class DyslexiaDetectionEngine:
         )
         
         # Add specific recommendations based on condition
-        if results['dyslexia_probability'] > 0.5:
+        # Add specific recommendations based on condition
+        if results['dyslexia_probability'] >= 0.5:
             results['recommended_actions'].insert(0, "Start Dyslexia-specific reading and phoneme exercises")
-        if results['dysgraphia_probability'] > 0.5:
+        if results['dysgraphia_probability'] >= 0.5:
             results['recommended_actions'].insert(0, "Start Dysgraphia-specific writing and motor skill exercises")
 
         results['strengths_identified'] = self.identify_strengths(

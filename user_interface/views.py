@@ -22,6 +22,8 @@ from speech_analysis.models import SpeechAnalysis
 from detection_module.models import DetectionResult
 from detection_module.detection_engine import DyslexiaDetectionEngine
 from training_module.models import Exercise, UserProgress, ExerciseSession, ProgressReport
+from handwriting_analysis.cnn_analyzer import HandwritingCNNAnalyzer
+from speech_analysis.audio_analyzer import SpeechAnalyzer
 
 def home(request):
     """Home page with child-friendly interface"""
@@ -139,22 +141,22 @@ def upload_data(request):
             # 1. Create Mock Analyses
             hw_analysis = HandwritingAnalysis.objects.create(
                 sample=handwriting_sample, user=request.user,
-                irregular_shapes_score=0.35, spacing_issues_score=0.45,
-                stroke_pattern_score=0.25, overall_handwriting_score=0.4,
-                letter_formation_issues=['Slight irregularity'],
-                spacing_analysis={'word_spacing_consistency': 0.65},
-                stroke_analysis={'stroke_consistency': 0.7},
+                irregular_shapes_score=0.15, spacing_issues_score=0.15,
+                stroke_pattern_score=0.1, overall_handwriting_score=0.15,
+                letter_formation_issues=['None identified'],
+                spacing_analysis={'word_spacing_consistency': 0.9},
+                stroke_analysis={'stroke_consistency': 0.9},
                 model_confidence=0.9
             )
             sp_analysis = SpeechAnalysis.objects.create(
                 sample=speech_sample, user=request.user,
-                pronunciation_score=0.6, fluency_score=0.5,
-                reading_speed=110.0, pause_frequency=1.8,
-                mispronunciations=['Minor errors'],
-                fluency_issues=['Moderate variations'],
+                pronunciation_score=0.9, fluency_score=0.9,
+                reading_speed=120.0, pause_frequency=1.0,
+                mispronunciations=[],
+                fluency_issues=[],
                 phoneme_analysis={'mfcc_mean': [0.1, 0.2]},
-                pitch_variation=0.3, volume_consistency=0.7,
-                rhythm_score=0.6, model_confidence=0.85
+                pitch_variation=0.3, volume_consistency=0.9,
+                rhythm_score=0.9, model_confidence=0.95
             )
 
             # 2. Run Engine & Save Result
@@ -223,39 +225,46 @@ def upload_data(request):
             # 1. Handwriting Analysis (if provided)
             hw_analysis = None
             if handwriting_sample:
-                hw_analysis_result = {
-                    'irregular_shapes_score': 0.35,
-                    'spacing_issues_score': 0.45,
-                    'stroke_pattern_score': 0.25,
-                    'overall_handwriting_score': 0.4,
-                    'letter_formation_issues': ['Slight irregularity in letter formation'],
-                    'spacing_analysis': {'word_spacing_consistency': 0.65},
-                    'stroke_analysis': {'stroke_consistency': 0.7},
-                    'model_confidence': 0.85
-                }
-                hw_analysis = HandwritingAnalysis.objects.create(
-                    sample=handwriting_sample, user=request.user, **hw_analysis_result
-                )
+                try:
+                    analyzer = HandwritingCNNAnalyzer()
+                    hw_analysis_result = analyzer.analyze_handwriting(handwriting_sample.image_file.path)
+                    hw_analysis = HandwritingAnalysis.objects.create(
+                        sample=handwriting_sample, user=request.user, **hw_analysis_result
+                    )
+                except Exception as e:
+                    messages.error(request, f"Handwriting analysis failed: {str(e)}")
+                    hw_analysis_result = {
+                        'irregular_shapes_score': 0.1, 'spacing_issues_score': 0.1,
+                        'stroke_pattern_score': 0.1, 'overall_handwriting_score': 0.1,
+                        'letter_formation_issues': ['Processing Error'],
+                        'spacing_analysis': {}, 'stroke_analysis': {}, 'model_confidence': 0.5
+                    }
+                    hw_analysis = HandwritingAnalysis.objects.create(
+                        sample=handwriting_sample, user=request.user, **hw_analysis_result
+                    )
 
             # 2. Speech Analysis (if provided)
             sp_analysis = None
             if speech_sample:
-                sp_analysis_result = {
-                    'pronunciation_score': 0.65,
-                    'fluency_score': 0.55,
-                    'reading_speed': 110.0,
-                    'pause_frequency': 1.8,
-                    'mispronunciations': ['Minor phoneme errors'],
-                    'fluency_issues': ['Moderate rhythm variations'],
-                    'phoneme_analysis': {'mfcc_mean': [0.15, 0.25, 0.35]},
-                    'pitch_variation': 0.35,
-                    'volume_consistency': 0.75,
-                    'rhythm_score': 0.65,
-                    'model_confidence': 0.82
-                }
-                sp_analysis = SpeechAnalysis.objects.create(
-                    sample=speech_sample, user=request.user, **sp_analysis_result
-                )
+                try:
+                    analyzer = SpeechAnalyzer()
+                    sp_analysis_result = analyzer.analyze_speech(speech_sample.audio_file.path, speech_sample.text_content)
+                    sp_analysis = SpeechAnalysis.objects.create(
+                        sample=speech_sample, user=request.user, **sp_analysis_result
+                    )
+                except Exception as e:
+                    messages.error(request, f"Speech analysis failed: {str(e)}")
+                    sp_analysis_result = {
+                        'pronunciation_score': 0.9, 'fluency_score': 0.9,
+                        'reading_speed': 120.0, 'pause_frequency': 1.0,
+                        'mispronunciations': [], 'fluency_issues': [],
+                        'phoneme_analysis': {}, 'pitch_variation': 0.3,
+                        'volume_consistency': 0.9, 'rhythm_score': 0.9,
+                        'model_confidence': 0.5
+                    }
+                    sp_analysis = SpeechAnalysis.objects.create(
+                        sample=speech_sample, user=request.user, **sp_analysis_result
+                    )
 
             # 3. Run Detection Engine
             engine = DyslexiaDetectionEngine()
@@ -305,17 +314,17 @@ def analyze_samples(request):
         if sample_type == 'handwriting':
             sample = get_object_or_404(HandwritingSample, id=sample_id, user=request.user)
             
-            # Simplified analysis - create mock results for demonstration
-            analysis_result = {
-                'irregular_shapes_score': 0.3,
-                'spacing_issues_score': 0.4,
-                'stroke_pattern_score': 0.2,
-                'overall_handwriting_score': 0.3,
-                'letter_formation_issues': ['Some letters may need practice'],
-                'spacing_analysis': {'word_spacing_consistency': 0.7},
-                'stroke_analysis': {'stroke_consistency': 0.6},
-                'model_confidence': 0.8
-            }
+            try:
+                analyzer = HandwritingCNNAnalyzer()
+                analysis_result = analyzer.analyze_handwriting(sample.image_file.path)
+            except Exception as e:
+                messages.error(request, f"Analysis failed: {str(e)}")
+                analysis_result = {
+                    'irregular_shapes_score': 0.3, 'spacing_issues_score': 0.4,
+                    'stroke_pattern_score': 0.2, 'overall_handwriting_score': 0.3,
+                    'letter_formation_issues': ['Error in processing'],
+                    'spacing_analysis': {}, 'stroke_analysis': {}, 'model_confidence': 0.5
+                }
             
             # Save analysis
             HandwritingAnalysis.objects.create(
@@ -329,20 +338,19 @@ def analyze_samples(request):
         elif sample_type == 'speech':
             sample = get_object_or_404(SpeechSample, id=sample_id, user=request.user)
             
-            # Simplified analysis - create mock results for demonstration
-            analysis_result = {
-                'pronunciation_score': 0.7,
-                'fluency_score': 0.6,
-                'reading_speed': 120.0,
-                'pause_frequency': 1.5,
-                'mispronunciations': [],
-                'fluency_issues': ['Minor rhythm variations'],
-                'phoneme_analysis': {'mfcc_mean': [0.1, 0.2, 0.3]},
-                'pitch_variation': 0.3,
-                'volume_consistency': 0.8,
-                'rhythm_score': 0.7,
-                'model_confidence': 0.8
-            }
+            try:
+                analyzer = SpeechAnalyzer()
+                analysis_result = analyzer.analyze_speech(sample.audio_file.path, sample.text_content)
+            except Exception as e:
+                messages.error(request, f"Analysis failed: {str(e)}")
+                analysis_result = {
+                    'pronunciation_score': 0.7, 'fluency_score': 0.6,
+                    'reading_speed': 120.0, 'pause_frequency': 1.5,
+                    'mispronunciations': [], 'fluency_issues': [],
+                    'phoneme_analysis': {}, 'pitch_variation': 0.3,
+                    'volume_consistency': 0.8, 'rhythm_score': 0.7,
+                    'model_confidence': 0.5
+                }
             
             # Save analysis
             SpeechAnalysis.objects.create(
@@ -414,7 +422,7 @@ def detection_results(request):
         )
         
         # Redirect based on risk level
-        if risk_level in ['medium', 'high']:
+        if risk_level == 'high':
             messages.success(request, 'Analysis completed. We prepared exercises to help you practice!')
             return redirect('training_exercises')
         else:
@@ -435,9 +443,9 @@ def training_exercises(request):
     # 1. Check for positive detection
     latest_detection = DetectionResult.objects.filter(user=request.user).order_by('-detection_timestamp').first()
     has_positive_detection = bool(latest_detection and (
-        latest_detection.risk_level in ['medium', 'high'] or
-        latest_detection.dyslexia_probability > 0.4 or
-        latest_detection.dysgraphia_probability > 0.4
+        latest_detection.risk_level == 'high' or
+        latest_detection.dyslexia_probability >= 0.5 or
+        latest_detection.dysgraphia_probability >= 0.5
     ))
     
     if not has_positive_detection:
@@ -757,7 +765,10 @@ def progress_reports(request):
 @login_required
 def profile(request):
     """User profile management"""
-    profile, created = UserProfile.objects.get_or_create(user=request.user)
+    profile, created = UserProfile.objects.get_or_create(
+        user=request.user,
+        defaults={'age': 10, 'grade_level': '5th'}
+    )
     
     if request.method == 'POST':
         profile.age = request.POST.get('age', profile.age)
@@ -835,3 +846,15 @@ def logout_view(request):
     logout(request)
     messages.success(request, 'You have been logged out successfully!')
     return redirect('home')
+
+@login_required
+def clear_detections(request):
+    """Clear all detection results for the current user"""
+    if request.method == 'POST':
+        # Clear specific user results
+        DetectionResult.objects.filter(user=request.user).delete()
+        HandwritingAnalysis.objects.filter(user=request.user).delete()
+        SpeechAnalysis.objects.filter(user=request.user).delete()
+        
+        messages.success(request, 'All analysis reports have been cleared!')
+    return redirect('detection_results')
